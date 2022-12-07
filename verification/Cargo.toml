@@ -1,0 +1,31 @@
+[package]
+name = "eth-light-client-in-ckb_verification"
+version = "0.1.0-alpha.0"
+authors = ["Boyu Yang <yangby@cryptape.com>"]
+edition = "2021"
+license = "MIT"
+description = "ETH Light Client in CKB (the verification part)."
+homepage = "https://github.com/yangby-cryptape/eth-light-client-in-ckb"
+repository = "https://github.com/yangby-cryptape/eth-light-client-in-ckb"
+
+[dependencies]
+molecule         = { version = "=0.7.3", default-features = false }
+ckb-mmr          = { version = "0.5.1", default-features = false, package = "ckb-merkle-mountain-range" }
+rlp              = { version = "0.5.2", default-features = false }
+tiny-keccak      = { version = "2.0.2", features = ["keccak"] }
+eth2_ssz         = { git = "https://github.com/yangby-cryptape/lighthouse", rev = "ebfccf0" }
+eth2_ssz_types   = { git = "https://github.com/yangby-cryptape/lighthouse", rev = "ebfccf0" }
+eth2_ssz_derive  = { git = "https://github.com/yangby-cryptape/lighthouse", rev = "ebfccf0" }
+tree_hash        = { git = "https://github.com/yangby-cryptape/lighthouse", rev = "ebfccf0" }
+tree_hash_derive = { git = "https://github.com/yangby-cryptape/lighthouse", rev = "ebfccf0" }
+merkle_proof     = { git = "https://github.com/yangby-cryptape/lighthouse", rev = "ebfccf0" }
+eth2_hashing     = { git = "https://github.com/yangby-cryptape/lighthouse", rev = "ebfccf0" }
+
+[features]
+default = []
+# TODO fix no-std
+std = [
+    "molecule/std",
+    "ckb-mmr/std",
+    "rlp/std",
+]

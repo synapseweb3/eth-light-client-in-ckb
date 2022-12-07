@@ -1,0 +1,88 @@
+array Uint64 [byte; 8];
+array Hash [byte; 32];
+vector Bytes <byte>;
+
+array Bytes64 [byte; 64];
+array BlsPubkey [byte; 32];
+array BlsSignature [byte; 96];
+
+array BlsPubkeyArray [BlsPubkey; 512];
+
+vector SszProof <Hash>;
+vector MptProof <Bytes>;
+
+struct HeaderDigest {
+    // The start header in MMR.
+    start_slot: Uint64,
+    // The end header in MMR.
+    end_slot: Uint64,
+    // The body_root for leaves; otherwise, the children_hash.
+    mmr_hash: Hash,
+}
+
+vector MmrProof <HeaderDigest>;
+
+struct Eth2Header {
+    // Represent index of headers_mmr_root.
+    slot: Uint64,
+    // Represent value of headers_mmr_root.
+    body_root: Hash,
+}
+
+struct SyncAggregate {
+    sync_committee_bits: Bytes64,
+    sync_committee_signature: BlsSignature,
+}
+
+struct SyncCommittee {
+    pubkeys: BlsPubkeyArray,
+    aggregate_pubkey: BlsPubkey,
+}
+
+vector Eth2HeaderVec <Eth2Header>;
+// TODO unimplemented Eth2Update
+vector Eth2UpdateVec <Bytes>;
+
+struct Client {
+    minimal_slot: Uint64,
+    maximal_slot: Uint64,
+    headers_mmr_root: HeaderDigest,
+}
+
+table HeadersUpdate {
+    // The tip header before updates.
+    tip_header: Eth2Header,
+    // Prove the tip header is in the client.
+    tip_header_mmr_proof: MmrProof,
+
+    // The mmr index/value pairs.
+    headers: Eth2HeaderVec,
+    // BLS pub keys for headers.
+    updates: Eth2UpdateVec,
+
+    new_headers_mmr_root: HeaderDigest,
+    // Prove the new headers are in the new headers_mmr_root.
+    new_headers_mmr_proof: MmrProof,
+}
+
+table TransactionProof {
+    header: Eth2Header,
+    transaction_index: Uint64,
+    receipts_root: Hash,
+
+    // Prove header in header_mmr_root.
+    header_mmr_proof: MmrProof,
+    // Prove transaction in body_root.
+    transaction_ssz_proof: SszProof,
+    // Prove receipt in receipts_root.
+    receipt_mpt_proof: MptProof,
+    // Prove receipts_root in body_root.
+    receipts_root_ssz_proof: SszProof,
+}
+
+table TransactionPayload {
+    // Raw data of the transaction.
+    transaction: Bytes,
+    // Raw data of the transaction receipt.
+    receipt: Bytes,
+}
