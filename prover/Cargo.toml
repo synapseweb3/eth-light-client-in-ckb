@@ -1,0 +1,18 @@
+[package]
+name = "eth-light-client-in-ckb_prover"
+version = "0.1.0-alpha.0"
+authors = ["Boyu Yang <yangby@cryptape.com>"]
+edition = "2021"
+license = "MIT"
+description = "ETH Light Client in CKB (the prover part)."
+homepage = "https://github.com/yangby-cryptape/eth-light-client-in-ckb"
+repository = "https://github.com/yangby-cryptape/eth-light-client-in-ckb"
+
+[dependencies]
+eth-light-client-in-ckb_verification = { version = "0.1.0-alpha.0", path = "../verification" }
+ethers-core = "1.0.2"
+cita_trie = "4.0.0"
+hasher = "0.1.4"
+eth2_types       = { git = "https://github.com/yangby-cryptape/lighthouse", rev = "ebfccf0", package = "types" }
+tree_hash        = { git = "https://github.com/yangby-cryptape/lighthouse", rev = "ebfccf0" }
+merkle_proof     = { git = "https://github.com/yangby-cryptape/lighthouse", rev = "ebfccf0" }
