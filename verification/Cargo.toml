@@ -1,5 +1,5 @@
 [package]
-name = "eth-light-client-in-ckb_verification"
+name = "eth_light_client_in_ckb-verification"
 version = "0.1.0-alpha.0"
 authors = ["Boyu Yang <yangby@cryptape.com>"]
 edition = "2021"
