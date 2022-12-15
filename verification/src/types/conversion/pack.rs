@@ -13,7 +13,7 @@ impl Pack<packed::Uint64> for core::Uint64 {
 
 impl Pack<packed::Hash> for core::Hash {
     fn pack(&self) -> packed::Hash {
-        packed::Hash::new_unchecked(molecule::bytes::Bytes::from(self.as_bytes()))
+        packed::Hash::new_unchecked(molecule::bytes::Bytes::from(self.as_bytes().to_vec()))
     }
 }
 
@@ -74,9 +74,7 @@ impl Pack<packed::MptProof> for core::MptProof {
 impl Pack<packed::HeaderDigest> for core::HeaderDigest {
     fn pack(&self) -> packed::HeaderDigest {
         packed::HeaderDigest::new_builder()
-            .start_slot(self.start_slot.pack())
-            .end_slot(self.end_slot.pack())
-            .mmr_hash(self.mmr_hash.pack())
+            .children_hash(self.children_hash.pack())
             .build()
     }
 }
@@ -89,10 +87,13 @@ impl Pack<packed::MmrProof> for core::MmrProof {
     }
 }
 
-impl Pack<packed::Eth2Header> for core::Eth2Header {
-    fn pack(&self) -> packed::Eth2Header {
-        packed::Eth2Header::new_builder()
+impl Pack<packed::Header> for core::Header {
+    fn pack(&self) -> packed::Header {
+        packed::Header::new_builder()
             .slot(self.slot.pack())
+            .proposer_index(self.proposer_index.pack())
+            .parent_root(self.parent_root.pack())
+            .state_root(self.state_root.pack())
             .body_root(self.body_root.pack())
             .build()
     }
@@ -107,6 +108,18 @@ impl Pack<packed::SyncAggregate> for core::SyncAggregate {
     }
 }
 
+impl Pack<packed::FinalityUpdate> for core::FinalityUpdate {
+    fn pack(&self) -> packed::FinalityUpdate {
+        packed::FinalityUpdate::new_builder()
+            .attested_header(self.attested_header.pack())
+            .finalized_header(self.finalized_header.pack())
+            .finality_branch(self.finality_branch.pack())
+            .sync_aggregate(self.sync_aggregate.pack())
+            .signature_slot(self.signature_slot.pack())
+            .build()
+    }
+}
+
 impl Pack<packed::SyncCommittee> for core::SyncCommittee {
     fn pack(&self) -> packed::SyncCommittee {
         packed::SyncCommittee::new_builder()
@@ -116,17 +129,17 @@ impl Pack<packed::SyncCommittee> for core::SyncCommittee {
     }
 }
 
-impl Pack<packed::Eth2HeaderVec> for core::Eth2HeaderVec {
-    fn pack(&self) -> packed::Eth2HeaderVec {
-        packed::Eth2HeaderVec::new_builder()
+impl Pack<packed::HeaderVec> for core::HeaderVec {
+    fn pack(&self) -> packed::HeaderVec {
+        packed::HeaderVec::new_builder()
             .set(self.iter().map(|v| v.pack()).collect())
             .build()
     }
 }
 
-impl Pack<packed::Eth2UpdateVec> for core::Eth2UpdateVec {
-    fn pack(&self) -> packed::Eth2UpdateVec {
-        packed::Eth2UpdateVec::new_builder()
+impl Pack<packed::FinalityUpdateVec> for core::FinalityUpdateVec {
+    fn pack(&self) -> packed::FinalityUpdateVec {
+        packed::FinalityUpdateVec::new_builder()
             .set(self.iter().map(|v| v.pack()).collect())
             .build()
     }
@@ -137,6 +150,7 @@ impl Pack<packed::Client> for core::Client {
         packed::Client::new_builder()
             .minimal_slot(self.minimal_slot.pack())
             .maximal_slot(self.maximal_slot.pack())
+            .tip_header_root(self.tip_header_root.pack())
             .headers_mmr_root(self.headers_mmr_root.pack())
             .build()
     }
@@ -145,8 +159,6 @@ impl Pack<packed::Client> for core::Client {
 impl Pack<packed::HeadersUpdate> for core::HeadersUpdate {
     fn pack(&self) -> packed::HeadersUpdate {
         packed::HeadersUpdate::new_builder()
-            .tip_header(self.tip_header.pack())
-            .tip_header_mmr_proof(self.tip_header_mmr_proof.pack())
             .headers(self.headers.pack())
             .updates(self.updates.pack())
             .new_headers_mmr_root(self.new_headers_mmr_root.pack())

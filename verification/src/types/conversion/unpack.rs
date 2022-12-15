@@ -92,9 +92,7 @@ impl_conversion_for_entity_unpack!(MptProof);
 impl<'r> Unpack<core::HeaderDigest> for packed::HeaderDigestReader<'r> {
     fn unpack(&self) -> core::HeaderDigest {
         core::HeaderDigest {
-            start_slot: self.start_slot().unpack(),
-            end_slot: self.end_slot().unpack(),
-            mmr_hash: self.mmr_hash().unpack(),
+            children_hash: self.children_hash().unpack(),
         }
     }
 }
@@ -107,15 +105,18 @@ impl<'r> Unpack<core::MmrProof> for packed::MmrProofReader<'r> {
 }
 impl_conversion_for_entity_unpack!(MmrProof);
 
-impl<'r> Unpack<core::Eth2Header> for packed::Eth2HeaderReader<'r> {
-    fn unpack(&self) -> core::Eth2Header {
-        core::Eth2Header {
+impl<'r> Unpack<core::Header> for packed::HeaderReader<'r> {
+    fn unpack(&self) -> core::Header {
+        core::Header {
             slot: self.slot().unpack(),
+            proposer_index: self.proposer_index().unpack(),
+            parent_root: self.parent_root().unpack(),
+            state_root: self.state_root().unpack(),
             body_root: self.body_root().unpack(),
         }
     }
 }
-impl_conversion_for_entity_unpack!(Eth2Header);
+impl_conversion_for_entity_unpack!(Header);
 
 impl<'r> Unpack<core::SyncAggregate> for packed::SyncAggregateReader<'r> {
     fn unpack(&self) -> core::SyncAggregate {
@@ -127,9 +128,23 @@ impl<'r> Unpack<core::SyncAggregate> for packed::SyncAggregateReader<'r> {
 }
 impl_conversion_for_entity_unpack!(SyncAggregate);
 
+impl<'r> Unpack<core::FinalityUpdate> for packed::FinalityUpdateReader<'r> {
+    fn unpack(&self) -> core::FinalityUpdate {
+        core::FinalityUpdate {
+            attested_header: self.attested_header().unpack(),
+            finalized_header: self.finalized_header().unpack(),
+            finality_branch: self.finality_branch().unpack(),
+            sync_aggregate: self.sync_aggregate().unpack(),
+            signature_slot: self.signature_slot().unpack(),
+        }
+    }
+}
+impl_conversion_for_entity_unpack!(FinalityUpdate);
+
 impl<'r> Unpack<core::SyncCommittee> for packed::SyncCommitteeReader<'r> {
     fn unpack(&self) -> core::SyncCommittee {
         core::SyncCommittee {
+            period: self.period().unpack(),
             pubkeys: self.pubkeys().unpack(),
             aggregate_pubkey: self.aggregate_pubkey().unpack(),
         }
@@ -137,25 +152,26 @@ impl<'r> Unpack<core::SyncCommittee> for packed::SyncCommitteeReader<'r> {
 }
 impl_conversion_for_entity_unpack!(SyncCommittee);
 
-impl<'r> Unpack<core::Eth2HeaderVec> for packed::Eth2HeaderVecReader<'r> {
-    fn unpack(&self) -> core::Eth2HeaderVec {
+impl<'r> Unpack<core::HeaderVec> for packed::HeaderVecReader<'r> {
+    fn unpack(&self) -> core::HeaderVec {
         self.iter().map(|v| v.unpack()).collect()
     }
 }
-impl_conversion_for_entity_unpack!(Eth2HeaderVec);
+impl_conversion_for_entity_unpack!(HeaderVec);
 
-impl<'r> Unpack<core::Eth2UpdateVec> for packed::Eth2UpdateVecReader<'r> {
-    fn unpack(&self) -> core::Eth2UpdateVec {
+impl<'r> Unpack<core::FinalityUpdateVec> for packed::FinalityUpdateVecReader<'r> {
+    fn unpack(&self) -> core::FinalityUpdateVec {
         self.iter().map(|v| v.unpack()).collect()
     }
 }
-impl_conversion_for_entity_unpack!(Eth2UpdateVec);
+impl_conversion_for_entity_unpack!(FinalityUpdateVec);
 
 impl<'r> Unpack<core::Client> for packed::ClientReader<'r> {
     fn unpack(&self) -> core::Client {
         core::Client {
             minimal_slot: self.minimal_slot().unpack(),
             maximal_slot: self.maximal_slot().unpack(),
+            tip_header_root: self.tip_header_root().unpack(),
             headers_mmr_root: self.headers_mmr_root().unpack(),
         }
     }
@@ -165,8 +181,6 @@ impl_conversion_for_entity_unpack!(Client);
 impl<'r> Unpack<core::HeadersUpdate> for packed::HeadersUpdateReader<'r> {
     fn unpack(&self) -> core::HeadersUpdate {
         core::HeadersUpdate {
-            tip_header: self.tip_header().unpack(),
-            tip_header_mmr_proof: self.tip_header_mmr_proof().unpack(),
             headers: self.headers().unpack(),
             updates: self.updates().unpack(),
             new_headers_mmr_root: self.new_headers_mmr_root().unpack(),

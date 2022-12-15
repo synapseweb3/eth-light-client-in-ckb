@@ -1,4 +1,4 @@
-use eth2_types::{BeaconBlock, EthSpec};
+use eth2_types::{BeaconBlock, EthSpec, ExecPayload as _, Slot, Transaction};
 use merkle_proof::MerkleTree;
 use tree_hash::{Hash256, TreeHash};
 
@@ -103,6 +103,41 @@ where
 {
     pub fn original(&self) -> &BeaconBlock<T> {
         &self.original
+    }
+
+    pub fn slot(&self) -> Slot {
+        self.original.slot()
+    }
+
+    pub fn number(&self) -> u64 {
+        self.original
+            .body()
+            .execution_payload()
+            .unwrap()
+            .block_number()
+    }
+
+    pub fn transactions_count(&self) -> usize {
+        self.original
+            .body()
+            .execution_payload()
+            .unwrap()
+            .execution_payload
+            .transactions
+            .len()
+    }
+
+    pub fn transaction(
+        &self,
+        index: usize,
+    ) -> Option<&Transaction<<T as EthSpec>::MaxBytesPerTransaction>> {
+        self.original
+            .body()
+            .execution_payload()
+            .unwrap()
+            .execution_payload
+            .transactions
+            .get(index)
     }
 
     pub fn body_root(&self) -> Hash256 {

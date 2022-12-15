@@ -42,45 +42,43 @@ impl core::Client {
             return Err(());
         }
 
-        // Check Tip header
+        let headers = packed_updates.headers().unpack();
+
+        // Check Old Tip Header
         {
-            let tip_header_slot = packed_updates.tip_header().slot().unpack();
-            if tip_header_slot != self.maximal_slot {
+            let first_header = &headers[0];
+
+            if first_header.slot != self.maximal_slot + 1 {
                 return Err(());
             }
-            let result = self.verify_single_header(
-                packed_updates.tip_header(),
-                packed_updates.tip_header_mmr_proof(),
-            );
-            if !result {
+
+            if first_header.parent_root != self.tip_header_root {
                 return Err(());
             }
         }
 
-        let headers = packed_updates.headers().unpack();
-        let end_slot = headers[headers.len() - 1].slot;
-
         // Check Updates
         {
-            let start_slot = headers[0].slot;
-
-            if start_slot != self.maximal_slot + 1 {
-                return Err(());
-            }
-
+            // Check if updates are continuous
             for pair in headers.windows(2) {
                 if pair[0].slot + 1 != pair[1].slot {
                     return Err(());
                 }
+                if pair[1].parent_root != pair[0].tree_hash_root() {
+                    return Err(());
+                }
             }
 
-            // TODO verify BLS pubkeys
+            // TODO verify more, such as BLS
         };
+
+        let new_tip_index = headers.len() - 1;
+        let maximal_slot = headers[new_tip_index].slot;
 
         // Check New MMR Root
         {
             let proof: mmr::MMRProof = {
-                let max_index = end_slot - self.minimal_slot;
+                let max_index = maximal_slot - self.minimal_slot;
                 let mmr_size = leaf_index_to_mmr_size(max_index);
                 let proof = packed_updates
                     .new_headers_mmr_proof()
@@ -113,7 +111,8 @@ impl core::Client {
 
         let new_client = Self {
             minimal_slot: self.minimal_slot,
-            maximal_slot: end_slot,
+            maximal_slot,
+            tip_header_root: headers[new_tip_index].tree_hash_root(),
             headers_mmr_root: packed_updates.new_headers_mmr_root().unpack(),
         };
 
@@ -122,7 +121,7 @@ impl core::Client {
 
     fn verify_single_header(
         &self,
-        header: packed::Eth2HeaderReader,
+        header: packed::HeaderReader,
         header_mmr_proof: packed::MmrProofReader,
     ) -> bool {
         let header_slot = header.slot().unpack();

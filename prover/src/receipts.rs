@@ -47,6 +47,10 @@ impl Receipts {
         let key = encode(&index);
         self.trie.get_proof(&key).unwrap()
     }
+
+    pub fn encode_data(&self, index: usize) -> Vec<u8> {
+        encode_receipt(&self.original[index])
+    }
 }
 
 // NOTE The implementation in `ethers` is incorrect.

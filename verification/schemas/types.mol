@@ -12,20 +12,17 @@ vector SszProof <Hash>;
 vector MptProof <Bytes>;
 
 struct HeaderDigest {
-    // The start header in MMR.
-    start_slot: Uint64,
-    // The end header in MMR.
-    end_slot: Uint64,
-    // The body_root for leaves; otherwise, the children_hash.
-    mmr_hash: Hash,
+    // The hash for leaves; otherwise, the hash of children nodes.
+    children_hash: Hash,
 }
 
 vector MmrProof <HeaderDigest>;
 
-struct Eth2Header {
-    // Represent index of headers_mmr_root.
+struct Header {
     slot: Uint64,
-    // Represent value of headers_mmr_root.
+    proposer_index: Uint64,
+    parent_root: Hash,
+    state_root: Hash,
     body_root: Hash,
 }
 
@@ -34,31 +31,34 @@ struct SyncAggregate {
     sync_committee_signature: BlsSignature,
 }
 
+table FinalityUpdate {
+    attested_header: Header,
+    sync_aggregate: SyncAggregate,
+    signature_slot: Uint64,
+    finalized_header: Header,
+    finality_branch: SszProof,
+}
+
 struct SyncCommittee {
+    period: Uint64,
     pubkeys: BlsPubkeyArray,
     aggregate_pubkey: BlsPubkey,
 }
 
-vector Eth2HeaderVec <Eth2Header>;
-// TODO unimplemented Eth2Update
-vector Eth2UpdateVec <Bytes>;
+vector HeaderVec <Header>;
+vector FinalityUpdateVec <FinalityUpdate>;
 
 struct Client {
     minimal_slot: Uint64,
     maximal_slot: Uint64,
+    tip_header_root: Hash,
     headers_mmr_root: HeaderDigest,
 }
 
 table HeadersUpdate {
-    // The tip header before updates.
-    tip_header: Eth2Header,
-    // Prove the tip header is in the client.
-    tip_header_mmr_proof: MmrProof,
-
-    // The mmr index/value pairs.
-    headers: Eth2HeaderVec,
-    // BLS pub keys for headers.
-    updates: Eth2UpdateVec,
+    headers: HeaderVec,
+    // TODO unverified field
+    updates: FinalityUpdateVec,
 
     new_headers_mmr_root: HeaderDigest,
     // Prove the new headers are in the new headers_mmr_root.
@@ -66,7 +66,7 @@ table HeadersUpdate {
 }
 
 table TransactionProof {
-    header: Eth2Header,
+    header: Header,
     transaction_index: Uint64,
     receipts_root: Hash,
 

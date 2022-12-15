@@ -1,8 +1,5 @@
 use alloc::{vec, vec::Vec};
 
-// TODO fix no-std
-use core as std;
-
 use merkle_proof::MerkleTree;
 use ssz_derive::{Decode, Encode};
 use ssz_types::{typenum, VariableList};

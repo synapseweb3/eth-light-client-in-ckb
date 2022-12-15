@@ -1,11 +1,14 @@
-use alloc::format;
 use core::cmp::PartialEq;
 
-use ckb_mmr::{Error as MMRError, Merge, MerkleProof, Result as MMRResult, MMR};
+use ckb_mmr::{Merge, MerkleProof, Result as MMRResult, MMR};
 use eth2_hashing::{hash32_concat, hash_fixed, HASH_LEN};
-use tree_hash::Hash256;
+#[cfg(feature = "std")]
+use eth2_types::{BeaconBlockHeader, Slot};
+use tree_hash::{Hash256, TreeHash as _};
 
 use crate::types::{packed, prelude::*};
+
+pub use ckb_mmr as lib;
 
 /// A struct to implement MMR `Merge` trait
 pub struct MergeHeaderDigest;
@@ -14,20 +17,49 @@ pub type ClientRootMMR<S> = MMR<packed::HeaderDigest, MergeHeaderDigest, S>;
 /// MMR proof
 pub type MMRProof = MerkleProof<packed::HeaderDigest, MergeHeaderDigest>;
 
-impl<'r> packed::Eth2HeaderReader<'r> {
+impl<'r> packed::HeaderReader<'r> {
     /// Get the MMR header digest from the header
     pub fn digest(&self) -> packed::HeaderDigest {
         packed::HeaderDigest::new_builder()
-            .start_slot(self.slot().to_entity())
-            .end_slot(self.slot().to_entity())
-            .mmr_hash(self.body_root().to_entity())
+            .children_hash(self.calc_header_root().pack())
             .build()
+    }
+
+    pub fn calc_header_root(&self) -> Hash256 {
+        self.unpack().tree_hash_root()
+    }
+
+    #[cfg(feature = "std")]
+    pub fn to_ssz_header(&self) -> BeaconBlockHeader {
+        BeaconBlockHeader {
+            slot: Slot::new(self.slot().unpack()),
+            proposer_index: self.proposer_index().unpack(),
+            parent_root: self.parent_root().unpack(),
+            state_root: self.state_root().unpack(),
+            body_root: self.body_root().unpack(),
+        }
     }
 }
 
-impl packed::Eth2Header {
+impl packed::Header {
     pub fn digest(&self) -> packed::HeaderDigest {
         self.as_reader().digest()
+    }
+
+    pub fn calc_header_root(&self) -> Hash256 {
+        self.as_reader().calc_header_root()
+    }
+
+    #[cfg(feature = "std")]
+    pub fn from_ssz_header(header: &BeaconBlockHeader) -> Self {
+        let slot: u64 = header.slot.into();
+        packed::Header::new_builder()
+            .slot(slot.pack())
+            .proposer_index(header.proposer_index.pack())
+            .parent_root(header.parent_root.pack())
+            .state_root(header.state_root.pack())
+            .body_root(header.body_root.pack())
+            .build()
     }
 }
 
@@ -54,22 +86,9 @@ impl Merge for MergeHeaderDigest {
     type Item = packed::HeaderDigest;
 
     fn merge(lhs: &Self::Item, rhs: &Self::Item) -> MMRResult<Self::Item> {
-        let mmr_hash = hash32_concat(&lhs.calc_mmr_hash(), &rhs.calc_mmr_hash());
-
-        let lhs_end_slot = lhs.end_slot().unpack();
-        let rhs_start_slot = rhs.start_slot().unpack();
-        if lhs_end_slot + 1 != rhs_start_slot {
-            let errmsg = format!(
-                "failed since the headers isn't continuous ([-,{}], [{},-])",
-                lhs_end_slot, rhs_start_slot
-            );
-            return Err(MMRError::MergeError(errmsg));
-        }
-
+        let children_hash = hash32_concat(&lhs.calc_mmr_hash(), &rhs.calc_mmr_hash());
         Ok(Self::Item::new_builder()
-            .start_slot(lhs.start_slot())
-            .end_slot(rhs.end_slot())
-            .mmr_hash(Hash256::from(mmr_hash).pack())
+            .children_hash(Hash256::from(children_hash).pack())
             .build())
     }
 

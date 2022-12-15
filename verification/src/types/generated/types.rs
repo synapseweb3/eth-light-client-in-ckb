@@ -13071,9 +13071,7 @@ impl ::core::fmt::Debug for HeaderDigest {
 impl ::core::fmt::Display for HeaderDigest {
     fn fmt(&self, f: &mut ::core::fmt::Formatter) -> ::core::fmt::Result {
         write!(f, "{} {{ ", Self::NAME)?;
-        write!(f, "{}: {}", "start_slot", self.start_slot())?;
-        write!(f, ", {}: {}", "end_slot", self.end_slot())?;
-        write!(f, ", {}: {}", "mmr_hash", self.mmr_hash())?;
+        write!(f, "{}: {}", "children_hash", self.children_hash())?;
         write!(f, " }}")
     }
 }
@@ -13081,23 +13079,17 @@ impl ::core::default::Default for HeaderDigest {
     fn default() -> Self {
         let v: Vec<u8> = vec![
             0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-            0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+            0, 0, 0,
         ];
         HeaderDigest::new_unchecked(v.into())
     }
 }
 impl HeaderDigest {
-    pub const TOTAL_SIZE: usize = 48;
-    pub const FIELD_SIZES: [usize; 3] = [8, 8, 32];
-    pub const FIELD_COUNT: usize = 3;
-    pub fn start_slot(&self) -> Uint64 {
-        Uint64::new_unchecked(self.0.slice(0..8))
-    }
-    pub fn end_slot(&self) -> Uint64 {
-        Uint64::new_unchecked(self.0.slice(8..16))
-    }
-    pub fn mmr_hash(&self) -> Hash {
-        Hash::new_unchecked(self.0.slice(16..48))
+    pub const TOTAL_SIZE: usize = 32;
+    pub const FIELD_SIZES: [usize; 1] = [32];
+    pub const FIELD_COUNT: usize = 1;
+    pub fn children_hash(&self) -> Hash {
+        Hash::new_unchecked(self.0.slice(0..32))
     }
     pub fn as_reader<'r>(&'r self) -> HeaderDigestReader<'r> {
         HeaderDigestReader::new_unchecked(self.as_slice())
@@ -13125,10 +13117,7 @@ impl molecule::prelude::Entity for HeaderDigest {
         ::core::default::Default::default()
     }
     fn as_builder(self) -> Self::Builder {
-        Self::new_builder()
-            .start_slot(self.start_slot())
-            .end_slot(self.end_slot())
-            .mmr_hash(self.mmr_hash())
+        Self::new_builder().children_hash(self.children_hash())
     }
 }
 #[derive(Clone, Copy)]
@@ -13150,24 +13139,16 @@ impl<'r> ::core::fmt::Debug for HeaderDigestReader<'r> {
 impl<'r> ::core::fmt::Display for HeaderDigestReader<'r> {
     fn fmt(&self, f: &mut ::core::fmt::Formatter) -> ::core::fmt::Result {
         write!(f, "{} {{ ", Self::NAME)?;
-        write!(f, "{}: {}", "start_slot", self.start_slot())?;
-        write!(f, ", {}: {}", "end_slot", self.end_slot())?;
-        write!(f, ", {}: {}", "mmr_hash", self.mmr_hash())?;
+        write!(f, "{}: {}", "children_hash", self.children_hash())?;
         write!(f, " }}")
     }
 }
 impl<'r> HeaderDigestReader<'r> {
-    pub const TOTAL_SIZE: usize = 48;
-    pub const FIELD_SIZES: [usize; 3] = [8, 8, 32];
-    pub const FIELD_COUNT: usize = 3;
-    pub fn start_slot(&self) -> Uint64Reader<'r> {
-        Uint64Reader::new_unchecked(&self.as_slice()[0..8])
-    }
-    pub fn end_slot(&self) -> Uint64Reader<'r> {
-        Uint64Reader::new_unchecked(&self.as_slice()[8..16])
-    }
-    pub fn mmr_hash(&self) -> HashReader<'r> {
-        HashReader::new_unchecked(&self.as_slice()[16..48])
+    pub const TOTAL_SIZE: usize = 32;
+    pub const FIELD_SIZES: [usize; 1] = [32];
+    pub const FIELD_COUNT: usize = 1;
+    pub fn children_hash(&self) -> HashReader<'r> {
+        HashReader::new_unchecked(&self.as_slice()[0..32])
     }
 }
 impl<'r> molecule::prelude::Reader<'r> for HeaderDigestReader<'r> {
@@ -13193,24 +13174,14 @@ impl<'r> molecule::prelude::Reader<'r> for HeaderDigestReader<'r> {
 }
 #[derive(Debug, Default)]
 pub struct HeaderDigestBuilder {
-    pub(crate) start_slot: Uint64,
-    pub(crate) end_slot: Uint64,
-    pub(crate) mmr_hash: Hash,
+    pub(crate) children_hash: Hash,
 }
 impl HeaderDigestBuilder {
-    pub const TOTAL_SIZE: usize = 48;
-    pub const FIELD_SIZES: [usize; 3] = [8, 8, 32];
-    pub const FIELD_COUNT: usize = 3;
-    pub fn start_slot(mut self, v: Uint64) -> Self {
-        self.start_slot = v;
-        self
-    }
-    pub fn end_slot(mut self, v: Uint64) -> Self {
-        self.end_slot = v;
-        self
-    }
-    pub fn mmr_hash(mut self, v: Hash) -> Self {
-        self.mmr_hash = v;
+    pub const TOTAL_SIZE: usize = 32;
+    pub const FIELD_SIZES: [usize; 1] = [32];
+    pub const FIELD_COUNT: usize = 1;
+    pub fn children_hash(mut self, v: Hash) -> Self {
+        self.children_hash = v;
         self
     }
 }
@@ -13221,9 +13192,7 @@ impl molecule::prelude::Builder for HeaderDigestBuilder {
         Self::TOTAL_SIZE
     }
     fn write<W: molecule::io::Write>(&self, writer: &mut W) -> molecule::io::Result<()> {
-        writer.write_all(self.start_slot.as_slice())?;
-        writer.write_all(self.end_slot.as_slice())?;
-        writer.write_all(self.mmr_hash.as_slice())?;
+        writer.write_all(self.children_hash.as_slice())?;
         Ok(())
     }
     fn build(&self) -> Self::Entity {
@@ -13269,7 +13238,7 @@ impl ::core::default::Default for MmrProof {
     }
 }
 impl MmrProof {
-    pub const ITEM_SIZE: usize = 48;
+    pub const ITEM_SIZE: usize = 32;
     pub fn total_size(&self) -> usize {
         molecule::NUMBER_SIZE + Self::ITEM_SIZE * self.item_count()
     }
@@ -13353,7 +13322,7 @@ impl<'r> ::core::fmt::Display for MmrProofReader<'r> {
     }
 }
 impl<'r> MmrProofReader<'r> {
-    pub const ITEM_SIZE: usize = 48;
+    pub const ITEM_SIZE: usize = 32;
     pub fn total_size(&self) -> usize {
         molecule::NUMBER_SIZE + Self::ITEM_SIZE * self.item_count()
     }
@@ -13414,7 +13383,7 @@ impl<'r> molecule::prelude::Reader<'r> for MmrProofReader<'r> {
 #[derive(Debug, Default)]
 pub struct MmrProofBuilder(pub(crate) Vec<HeaderDigest>);
 impl MmrProofBuilder {
-    pub const ITEM_SIZE: usize = 48;
+    pub const ITEM_SIZE: usize = 32;
     pub fn set(mut self, v: Vec<HeaderDigest>) -> Self {
         self.0 = v;
         self
@@ -13505,8 +13474,8 @@ impl<'t: 'r, 'r> ::core::iter::ExactSizeIterator for MmrProofReaderIterator<'t, 
     }
 }
 #[derive(Clone)]
-pub struct Eth2Header(molecule::bytes::Bytes);
-impl ::core::fmt::LowerHex for Eth2Header {
+pub struct Header(molecule::bytes::Bytes);
+impl ::core::fmt::LowerHex for Header {
     fn fmt(&self, f: &mut ::core::fmt::Formatter) -> ::core::fmt::Result {
         use molecule::hex_string;
         if f.alternate() {
@@ -13515,47 +13484,61 @@ impl ::core::fmt::LowerHex for Eth2Header {
         write!(f, "{}", hex_string(self.as_slice()))
     }
 }
-impl ::core::fmt::Debug for Eth2Header {
+impl ::core::fmt::Debug for Header {
     fn fmt(&self, f: &mut ::core::fmt::Formatter) -> ::core::fmt::Result {
         write!(f, "{}({:#x})", Self::NAME, self)
     }
 }
-impl ::core::fmt::Display for Eth2Header {
+impl ::core::fmt::Display for Header {
     fn fmt(&self, f: &mut ::core::fmt::Formatter) -> ::core::fmt::Result {
         write!(f, "{} {{ ", Self::NAME)?;
         write!(f, "{}: {}", "slot", self.slot())?;
+        write!(f, ", {}: {}", "proposer_index", self.proposer_index())?;
+        write!(f, ", {}: {}", "parent_root", self.parent_root())?;
+        write!(f, ", {}: {}", "state_root", self.state_root())?;
         write!(f, ", {}: {}", "body_root", self.body_root())?;
         write!(f, " }}")
     }
 }
-impl ::core::default::Default for Eth2Header {
+impl ::core::default::Default for Header {
     fn default() -> Self {
         let v: Vec<u8> = vec![
             0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-            0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+            0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+            0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+            0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
         ];
-        Eth2Header::new_unchecked(v.into())
+        Header::new_unchecked(v.into())
     }
 }
-impl Eth2Header {
-    pub const TOTAL_SIZE: usize = 40;
-    pub const FIELD_SIZES: [usize; 2] = [8, 32];
-    pub const FIELD_COUNT: usize = 2;
+impl Header {
+    pub const TOTAL_SIZE: usize = 112;
+    pub const FIELD_SIZES: [usize; 5] = [8, 8, 32, 32, 32];
+    pub const FIELD_COUNT: usize = 5;
     pub fn slot(&self) -> Uint64 {
         Uint64::new_unchecked(self.0.slice(0..8))
     }
-    pub fn body_root(&self) -> Hash {
-        Hash::new_unchecked(self.0.slice(8..40))
+    pub fn proposer_index(&self) -> Uint64 {
+        Uint64::new_unchecked(self.0.slice(8..16))
     }
-    pub fn as_reader<'r>(&'r self) -> Eth2HeaderReader<'r> {
-        Eth2HeaderReader::new_unchecked(self.as_slice())
+    pub fn parent_root(&self) -> Hash {
+        Hash::new_unchecked(self.0.slice(16..48))
+    }
+    pub fn state_root(&self) -> Hash {
+        Hash::new_unchecked(self.0.slice(48..80))
+    }
+    pub fn body_root(&self) -> Hash {
+        Hash::new_unchecked(self.0.slice(80..112))
+    }
+    pub fn as_reader<'r>(&'r self) -> HeaderReader<'r> {
+        HeaderReader::new_unchecked(self.as_slice())
     }
 }
-impl molecule::prelude::Entity for Eth2Header {
-    type Builder = Eth2HeaderBuilder;
-    const NAME: &'static str = "Eth2Header";
+impl molecule::prelude::Entity for Header {
+    type Builder = HeaderBuilder;
+    const NAME: &'static str = "Header";
     fn new_unchecked(data: molecule::bytes::Bytes) -> Self {
-        Eth2Header(data)
+        Header(data)
     }
     fn as_bytes(&self) -> molecule::bytes::Bytes {
         self.0.clone()
@@ -13564,10 +13547,10 @@ impl molecule::prelude::Entity for Eth2Header {
         &self.0[..]
     }
     fn from_slice(slice: &[u8]) -> molecule::error::VerificationResult<Self> {
-        Eth2HeaderReader::from_slice(slice).map(|reader| reader.to_entity())
+        HeaderReader::from_slice(slice).map(|reader| reader.to_entity())
     }
     fn from_compatible_slice(slice: &[u8]) -> molecule::error::VerificationResult<Self> {
-        Eth2HeaderReader::from_compatible_slice(slice).map(|reader| reader.to_entity())
+        HeaderReader::from_compatible_slice(slice).map(|reader| reader.to_entity())
     }
     fn new_builder() -> Self::Builder {
         ::core::default::Default::default()
@@ -13575,12 +13558,15 @@ impl molecule::prelude::Entity for Eth2Header {
     fn as_builder(self) -> Self::Builder {
         Self::new_builder()
             .slot(self.slot())
+            .proposer_index(self.proposer_index())
+            .parent_root(self.parent_root())
+            .state_root(self.state_root())
             .body_root(self.body_root())
     }
 }
 #[derive(Clone, Copy)]
-pub struct Eth2HeaderReader<'r>(&'r [u8]);
-impl<'r> ::core::fmt::LowerHex for Eth2HeaderReader<'r> {
+pub struct HeaderReader<'r>(&'r [u8]);
+impl<'r> ::core::fmt::LowerHex for HeaderReader<'r> {
     fn fmt(&self, f: &mut ::core::fmt::Formatter) -> ::core::fmt::Result {
         use molecule::hex_string;
         if f.alternate() {
@@ -13589,38 +13575,50 @@ impl<'r> ::core::fmt::LowerHex for Eth2HeaderReader<'r> {
         write!(f, "{}", hex_string(self.as_slice()))
     }
 }
-impl<'r> ::core::fmt::Debug for Eth2HeaderReader<'r> {
+impl<'r> ::core::fmt::Debug for HeaderReader<'r> {
     fn fmt(&self, f: &mut ::core::fmt::Formatter) -> ::core::fmt::Result {
         write!(f, "{}({:#x})", Self::NAME, self)
     }
 }
-impl<'r> ::core::fmt::Display for Eth2HeaderReader<'r> {
+impl<'r> ::core::fmt::Display for HeaderReader<'r> {
     fn fmt(&self, f: &mut ::core::fmt::Formatter) -> ::core::fmt::Result {
         write!(f, "{} {{ ", Self::NAME)?;
         write!(f, "{}: {}", "slot", self.slot())?;
+        write!(f, ", {}: {}", "proposer_index", self.proposer_index())?;
+        write!(f, ", {}: {}", "parent_root", self.parent_root())?;
+        write!(f, ", {}: {}", "state_root", self.state_root())?;
         write!(f, ", {}: {}", "body_root", self.body_root())?;
         write!(f, " }}")
     }
 }
-impl<'r> Eth2HeaderReader<'r> {
-    pub const TOTAL_SIZE: usize = 40;
-    pub const FIELD_SIZES: [usize; 2] = [8, 32];
-    pub const FIELD_COUNT: usize = 2;
+impl<'r> HeaderReader<'r> {
+    pub const TOTAL_SIZE: usize = 112;
+    pub const FIELD_SIZES: [usize; 5] = [8, 8, 32, 32, 32];
+    pub const FIELD_COUNT: usize = 5;
     pub fn slot(&self) -> Uint64Reader<'r> {
         Uint64Reader::new_unchecked(&self.as_slice()[0..8])
     }
+    pub fn proposer_index(&self) -> Uint64Reader<'r> {
+        Uint64Reader::new_unchecked(&self.as_slice()[8..16])
+    }
+    pub fn parent_root(&self) -> HashReader<'r> {
+        HashReader::new_unchecked(&self.as_slice()[16..48])
+    }
+    pub fn state_root(&self) -> HashReader<'r> {
+        HashReader::new_unchecked(&self.as_slice()[48..80])
+    }
     pub fn body_root(&self) -> HashReader<'r> {
-        HashReader::new_unchecked(&self.as_slice()[8..40])
+        HashReader::new_unchecked(&self.as_slice()[80..112])
     }
 }
-impl<'r> molecule::prelude::Reader<'r> for Eth2HeaderReader<'r> {
-    type Entity = Eth2Header;
-    const NAME: &'static str = "Eth2HeaderReader";
+impl<'r> molecule::prelude::Reader<'r> for HeaderReader<'r> {
+    type Entity = Header;
+    const NAME: &'static str = "HeaderReader";
     fn to_entity(&self) -> Self::Entity {
         Self::Entity::new_unchecked(self.as_slice().to_owned().into())
     }
     fn new_unchecked(slice: &'r [u8]) -> Self {
-        Eth2HeaderReader(slice)
+        HeaderReader(slice)
     }
     fn as_slice(&self) -> &'r [u8] {
         self.0
@@ -13635,16 +13633,31 @@ impl<'r> molecule::prelude::Reader<'r> for Eth2HeaderReader<'r> {
     }
 }
 #[derive(Debug, Default)]
-pub struct Eth2HeaderBuilder {
+pub struct HeaderBuilder {
     pub(crate) slot: Uint64,
+    pub(crate) proposer_index: Uint64,
+    pub(crate) parent_root: Hash,
+    pub(crate) state_root: Hash,
     pub(crate) body_root: Hash,
 }
-impl Eth2HeaderBuilder {
-    pub const TOTAL_SIZE: usize = 40;
-    pub const FIELD_SIZES: [usize; 2] = [8, 32];
-    pub const FIELD_COUNT: usize = 2;
+impl HeaderBuilder {
+    pub const TOTAL_SIZE: usize = 112;
+    pub const FIELD_SIZES: [usize; 5] = [8, 8, 32, 32, 32];
+    pub const FIELD_COUNT: usize = 5;
     pub fn slot(mut self, v: Uint64) -> Self {
         self.slot = v;
+        self
+    }
+    pub fn proposer_index(mut self, v: Uint64) -> Self {
+        self.proposer_index = v;
+        self
+    }
+    pub fn parent_root(mut self, v: Hash) -> Self {
+        self.parent_root = v;
+        self
+    }
+    pub fn state_root(mut self, v: Hash) -> Self {
+        self.state_root = v;
         self
     }
     pub fn body_root(mut self, v: Hash) -> Self {
@@ -13652,14 +13665,17 @@ impl Eth2HeaderBuilder {
         self
     }
 }
-impl molecule::prelude::Builder for Eth2HeaderBuilder {
-    type Entity = Eth2Header;
-    const NAME: &'static str = "Eth2HeaderBuilder";
+impl molecule::prelude::Builder for HeaderBuilder {
+    type Entity = Header;
+    const NAME: &'static str = "HeaderBuilder";
     fn expected_length(&self) -> usize {
         Self::TOTAL_SIZE
     }
     fn write<W: molecule::io::Write>(&self, writer: &mut W) -> molecule::io::Result<()> {
         writer.write_all(self.slot.as_slice())?;
+        writer.write_all(self.proposer_index.as_slice())?;
+        writer.write_all(self.parent_root.as_slice())?;
+        writer.write_all(self.state_root.as_slice())?;
         writer.write_all(self.body_root.as_slice())?;
         Ok(())
     }
@@ -13667,7 +13683,7 @@ impl molecule::prelude::Builder for Eth2HeaderBuilder {
         let mut inner = Vec::with_capacity(self.expected_length());
         self.write(&mut inner)
             .unwrap_or_else(|_| panic!("{} build should be ok", Self::NAME));
-        Eth2Header::new_unchecked(inner.into())
+        Header::new_unchecked(inner.into())
     }
 }
 #[derive(Clone)]
@@ -13861,6 +13877,359 @@ impl molecule::prelude::Builder for SyncAggregateBuilder {
     }
 }
 #[derive(Clone)]
+pub struct FinalityUpdate(molecule::bytes::Bytes);
+impl ::core::fmt::LowerHex for FinalityUpdate {
+    fn fmt(&self, f: &mut ::core::fmt::Formatter) -> ::core::fmt::Result {
+        use molecule::hex_string;
+        if f.alternate() {
+            write!(f, "0x")?;
+        }
+        write!(f, "{}", hex_string(self.as_slice()))
+    }
+}
+impl ::core::fmt::Debug for FinalityUpdate {
+    fn fmt(&self, f: &mut ::core::fmt::Formatter) -> ::core::fmt::Result {
+        write!(f, "{}({:#x})", Self::NAME, self)
+    }
+}
+impl ::core::fmt::Display for FinalityUpdate {
+    fn fmt(&self, f: &mut ::core::fmt::Formatter) -> ::core::fmt::Result {
+        write!(f, "{} {{ ", Self::NAME)?;
+        write!(f, "{}: {}", "attested_header", self.attested_header())?;
+        write!(f, ", {}: {}", "sync_aggregate", self.sync_aggregate())?;
+        write!(f, ", {}: {}", "signature_slot", self.signature_slot())?;
+        write!(f, ", {}: {}", "finalized_header", self.finalized_header())?;
+        write!(f, ", {}: {}", "finality_branch", self.finality_branch())?;
+        let extra_count = self.count_extra_fields();
+        if extra_count != 0 {
+            write!(f, ", .. ({} fields)", extra_count)?;
+        }
+        write!(f, " }}")
+    }
+}
+impl ::core::default::Default for FinalityUpdate {
+    fn default() -> Self {
+        let v: Vec<u8> = vec![
+            164, 1, 0, 0, 24, 0, 0, 0, 136, 0, 0, 0, 40, 1, 0, 0, 48, 1, 0, 0, 160, 1, 0, 0, 0, 0,
+            0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+            0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+            0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+            0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+            0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+            0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+            0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+            0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+            0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+            0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+            0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+            0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+            0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+            0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+        ];
+        FinalityUpdate::new_unchecked(v.into())
+    }
+}
+impl FinalityUpdate {
+    pub const FIELD_COUNT: usize = 5;
+    pub fn total_size(&self) -> usize {
+        molecule::unpack_number(self.as_slice()) as usize
+    }
+    pub fn field_count(&self) -> usize {
+        if self.total_size() == molecule::NUMBER_SIZE {
+            0
+        } else {
+            (molecule::unpack_number(&self.as_slice()[molecule::NUMBER_SIZE..]) as usize / 4) - 1
+        }
+    }
+    pub fn count_extra_fields(&self) -> usize {
+        self.field_count() - Self::FIELD_COUNT
+    }
+    pub fn has_extra_fields(&self) -> bool {
+        Self::FIELD_COUNT != self.field_count()
+    }
+    pub fn attested_header(&self) -> Header {
+        let slice = self.as_slice();
+        let start = molecule::unpack_number(&slice[4..]) as usize;
+        let end = molecule::unpack_number(&slice[8..]) as usize;
+        Header::new_unchecked(self.0.slice(start..end))
+    }
+    pub fn sync_aggregate(&self) -> SyncAggregate {
+        let slice = self.as_slice();
+        let start = molecule::unpack_number(&slice[8..]) as usize;
+        let end = molecule::unpack_number(&slice[12..]) as usize;
+        SyncAggregate::new_unchecked(self.0.slice(start..end))
+    }
+    pub fn signature_slot(&self) -> Uint64 {
+        let slice = self.as_slice();
+        let start = molecule::unpack_number(&slice[12..]) as usize;
+        let end = molecule::unpack_number(&slice[16..]) as usize;
+        Uint64::new_unchecked(self.0.slice(start..end))
+    }
+    pub fn finalized_header(&self) -> Header {
+        let slice = self.as_slice();
+        let start = molecule::unpack_number(&slice[16..]) as usize;
+        let end = molecule::unpack_number(&slice[20..]) as usize;
+        Header::new_unchecked(self.0.slice(start..end))
+    }
+    pub fn finality_branch(&self) -> SszProof {
+        let slice = self.as_slice();
+        let start = molecule::unpack_number(&slice[20..]) as usize;
+        if self.has_extra_fields() {
+            let end = molecule::unpack_number(&slice[24..]) as usize;
+            SszProof::new_unchecked(self.0.slice(start..end))
+        } else {
+            SszProof::new_unchecked(self.0.slice(start..))
+        }
+    }
+    pub fn as_reader<'r>(&'r self) -> FinalityUpdateReader<'r> {
+        FinalityUpdateReader::new_unchecked(self.as_slice())
+    }
+}
+impl molecule::prelude::Entity for FinalityUpdate {
+    type Builder = FinalityUpdateBuilder;
+    const NAME: &'static str = "FinalityUpdate";
+    fn new_unchecked(data: molecule::bytes::Bytes) -> Self {
+        FinalityUpdate(data)
+    }
+    fn as_bytes(&self) -> molecule::bytes::Bytes {
+        self.0.clone()
+    }
+    fn as_slice(&self) -> &[u8] {
+        &self.0[..]
+    }
+    fn from_slice(slice: &[u8]) -> molecule::error::VerificationResult<Self> {
+        FinalityUpdateReader::from_slice(slice).map(|reader| reader.to_entity())
+    }
+    fn from_compatible_slice(slice: &[u8]) -> molecule::error::VerificationResult<Self> {
+        FinalityUpdateReader::from_compatible_slice(slice).map(|reader| reader.to_entity())
+    }
+    fn new_builder() -> Self::Builder {
+        ::core::default::Default::default()
+    }
+    fn as_builder(self) -> Self::Builder {
+        Self::new_builder()
+            .attested_header(self.attested_header())
+            .sync_aggregate(self.sync_aggregate())
+            .signature_slot(self.signature_slot())
+            .finalized_header(self.finalized_header())
+            .finality_branch(self.finality_branch())
+    }
+}
+#[derive(Clone, Copy)]
+pub struct FinalityUpdateReader<'r>(&'r [u8]);
+impl<'r> ::core::fmt::LowerHex for FinalityUpdateReader<'r> {
+    fn fmt(&self, f: &mut ::core::fmt::Formatter) -> ::core::fmt::Result {
+        use molecule::hex_string;
+        if f.alternate() {
+            write!(f, "0x")?;
+        }
+        write!(f, "{}", hex_string(self.as_slice()))
+    }
+}
+impl<'r> ::core::fmt::Debug for FinalityUpdateReader<'r> {
+    fn fmt(&self, f: &mut ::core::fmt::Formatter) -> ::core::fmt::Result {
+        write!(f, "{}({:#x})", Self::NAME, self)
+    }
+}
+impl<'r> ::core::fmt::Display for FinalityUpdateReader<'r> {
+    fn fmt(&self, f: &mut ::core::fmt::Formatter) -> ::core::fmt::Result {
+        write!(f, "{} {{ ", Self::NAME)?;
+        write!(f, "{}: {}", "attested_header", self.attested_header())?;
+        write!(f, ", {}: {}", "sync_aggregate", self.sync_aggregate())?;
+        write!(f, ", {}: {}", "signature_slot", self.signature_slot())?;
+        write!(f, ", {}: {}", "finalized_header", self.finalized_header())?;
+        write!(f, ", {}: {}", "finality_branch", self.finality_branch())?;
+        let extra_count = self.count_extra_fields();
+        if extra_count != 0 {
+            write!(f, ", .. ({} fields)", extra_count)?;
+        }
+        write!(f, " }}")
+    }
+}
+impl<'r> FinalityUpdateReader<'r> {
+    pub const FIELD_COUNT: usize = 5;
+    pub fn total_size(&self) -> usize {
+        molecule::unpack_number(self.as_slice()) as usize
+    }
+    pub fn field_count(&self) -> usize {
+        if self.total_size() == molecule::NUMBER_SIZE {
+            0
+        } else {
+            (molecule::unpack_number(&self.as_slice()[molecule::NUMBER_SIZE..]) as usize / 4) - 1
+        }
+    }
+    pub fn count_extra_fields(&self) -> usize {
+        self.field_count() - Self::FIELD_COUNT
+    }
+    pub fn has_extra_fields(&self) -> bool {
+        Self::FIELD_COUNT != self.field_count()
+    }
+    pub fn attested_header(&self) -> HeaderReader<'r> {
+        let slice = self.as_slice();
+        let start = molecule::unpack_number(&slice[4..]) as usize;
+        let end = molecule::unpack_number(&slice[8..]) as usize;
+        HeaderReader::new_unchecked(&self.as_slice()[start..end])
+    }
+    pub fn sync_aggregate(&self) -> SyncAggregateReader<'r> {
+        let slice = self.as_slice();
+        let start = molecule::unpack_number(&slice[8..]) as usize;
+        let end = molecule::unpack_number(&slice[12..]) as usize;
+        SyncAggregateReader::new_unchecked(&self.as_slice()[start..end])
+    }
+    pub fn signature_slot(&self) -> Uint64Reader<'r> {
+        let slice = self.as_slice();
+        let start = molecule::unpack_number(&slice[12..]) as usize;
+        let end = molecule::unpack_number(&slice[16..]) as usize;
+        Uint64Reader::new_unchecked(&self.as_slice()[start..end])
+    }
+    pub fn finalized_header(&self) -> HeaderReader<'r> {
+        let slice = self.as_slice();
+        let start = molecule::unpack_number(&slice[16..]) as usize;
+        let end = molecule::unpack_number(&slice[20..]) as usize;
+        HeaderReader::new_unchecked(&self.as_slice()[start..end])
+    }
+    pub fn finality_branch(&self) -> SszProofReader<'r> {
+        let slice = self.as_slice();
+        let start = molecule::unpack_number(&slice[20..]) as usize;
+        if self.has_extra_fields() {
+            let end = molecule::unpack_number(&slice[24..]) as usize;
+            SszProofReader::new_unchecked(&self.as_slice()[start..end])
+        } else {
+            SszProofReader::new_unchecked(&self.as_slice()[start..])
+        }
+    }
+}
+impl<'r> molecule::prelude::Reader<'r> for FinalityUpdateReader<'r> {
+    type Entity = FinalityUpdate;
+    const NAME: &'static str = "FinalityUpdateReader";
+    fn to_entity(&self) -> Self::Entity {
+        Self::Entity::new_unchecked(self.as_slice().to_owned().into())
+    }
+    fn new_unchecked(slice: &'r [u8]) -> Self {
+        FinalityUpdateReader(slice)
+    }
+    fn as_slice(&self) -> &'r [u8] {
+        self.0
+    }
+    fn verify(slice: &[u8], compatible: bool) -> molecule::error::VerificationResult<()> {
+        use molecule::verification_error as ve;
+        let slice_len = slice.len();
+        if slice_len < molecule::NUMBER_SIZE {
+            return ve!(Self, HeaderIsBroken, molecule::NUMBER_SIZE, slice_len);
+        }
+        let total_size = molecule::unpack_number(slice) as usize;
+        if slice_len != total_size {
+            return ve!(Self, TotalSizeNotMatch, total_size, slice_len);
+        }
+        if slice_len == molecule::NUMBER_SIZE && Self::FIELD_COUNT == 0 {
+            return Ok(());
+        }
+        if slice_len < molecule::NUMBER_SIZE * 2 {
+            return ve!(Self, HeaderIsBroken, molecule::NUMBER_SIZE * 2, slice_len);
+        }
+        let offset_first = molecule::unpack_number(&slice[molecule::NUMBER_SIZE..]) as usize;
+        if offset_first % molecule::NUMBER_SIZE != 0 || offset_first < molecule::NUMBER_SIZE * 2 {
+            return ve!(Self, OffsetsNotMatch);
+        }
+        if slice_len < offset_first {
+            return ve!(Self, HeaderIsBroken, offset_first, slice_len);
+        }
+        let field_count = offset_first / molecule::NUMBER_SIZE - 1;
+        if field_count < Self::FIELD_COUNT {
+            return ve!(Self, FieldCountNotMatch, Self::FIELD_COUNT, field_count);
+        } else if !compatible && field_count > Self::FIELD_COUNT {
+            return ve!(Self, FieldCountNotMatch, Self::FIELD_COUNT, field_count);
+        };
+        let mut offsets: Vec<usize> = slice[molecule::NUMBER_SIZE..offset_first]
+            .chunks_exact(molecule::NUMBER_SIZE)
+            .map(|x| molecule::unpack_number(x) as usize)
+            .collect();
+        offsets.push(total_size);
+        if offsets.windows(2).any(|i| i[0] > i[1]) {
+            return ve!(Self, OffsetsNotMatch);
+        }
+        HeaderReader::verify(&slice[offsets[0]..offsets[1]], compatible)?;
+        SyncAggregateReader::verify(&slice[offsets[1]..offsets[2]], compatible)?;
+        Uint64Reader::verify(&slice[offsets[2]..offsets[3]], compatible)?;
+        HeaderReader::verify(&slice[offsets[3]..offsets[4]], compatible)?;
+        SszProofReader::verify(&slice[offsets[4]..offsets[5]], compatible)?;
+        Ok(())
+    }
+}
+#[derive(Debug, Default)]
+pub struct FinalityUpdateBuilder {
+    pub(crate) attested_header: Header,
+    pub(crate) sync_aggregate: SyncAggregate,
+    pub(crate) signature_slot: Uint64,
+    pub(crate) finalized_header: Header,
+    pub(crate) finality_branch: SszProof,
+}
+impl FinalityUpdateBuilder {
+    pub const FIELD_COUNT: usize = 5;
+    pub fn attested_header(mut self, v: Header) -> Self {
+        self.attested_header = v;
+        self
+    }
+    pub fn sync_aggregate(mut self, v: SyncAggregate) -> Self {
+        self.sync_aggregate = v;
+        self
+    }
+    pub fn signature_slot(mut self, v: Uint64) -> Self {
+        self.signature_slot = v;
+        self
+    }
+    pub fn finalized_header(mut self, v: Header) -> Self {
+        self.finalized_header = v;
+        self
+    }
+    pub fn finality_branch(mut self, v: SszProof) -> Self {
+        self.finality_branch = v;
+        self
+    }
+}
+impl molecule::prelude::Builder for FinalityUpdateBuilder {
+    type Entity = FinalityUpdate;
+    const NAME: &'static str = "FinalityUpdateBuilder";
+    fn expected_length(&self) -> usize {
+        molecule::NUMBER_SIZE * (Self::FIELD_COUNT + 1)
+            + self.attested_header.as_slice().len()
+            + self.sync_aggregate.as_slice().len()
+            + self.signature_slot.as_slice().len()
+            + self.finalized_header.as_slice().len()
+            + self.finality_branch.as_slice().len()
+    }
+    fn write<W: molecule::io::Write>(&self, writer: &mut W) -> molecule::io::Result<()> {
+        let mut total_size = molecule::NUMBER_SIZE * (Self::FIELD_COUNT + 1);
+        let mut offsets = Vec::with_capacity(Self::FIELD_COUNT);
+        offsets.push(total_size);
+        total_size += self.attested_header.as_slice().len();
+        offsets.push(total_size);
+        total_size += self.sync_aggregate.as_slice().len();
+        offsets.push(total_size);
+        total_size += self.signature_slot.as_slice().len();
+        offsets.push(total_size);
+        total_size += self.finalized_header.as_slice().len();
+        offsets.push(total_size);
+        total_size += self.finality_branch.as_slice().len();
+        writer.write_all(&molecule::pack_number(total_size as molecule::Number))?;
+        for offset in offsets.into_iter() {
+            writer.write_all(&molecule::pack_number(offset as molecule::Number))?;
+        }
+        writer.write_all(self.attested_header.as_slice())?;
+        writer.write_all(self.sync_aggregate.as_slice())?;
+        writer.write_all(self.signature_slot.as_slice())?;
+        writer.write_all(self.finalized_header.as_slice())?;
+        writer.write_all(self.finality_branch.as_slice())?;
+        Ok(())
+    }
+    fn build(&self) -> Self::Entity {
+        let mut inner = Vec::with_capacity(self.expected_length());
+        self.write(&mut inner)
+            .unwrap_or_else(|_| panic!("{} build should be ok", Self::NAME));
+        FinalityUpdate::new_unchecked(inner.into())
+    }
+}
+#[derive(Clone)]
 pub struct SyncCommittee(molecule::bytes::Bytes);
 impl ::core::fmt::LowerHex for SyncCommittee {
     fn fmt(&self, f: &mut ::core::fmt::Formatter) -> ::core::fmt::Result {
@@ -13879,7 +14248,8 @@ impl ::core::fmt::Debug for SyncCommittee {
 impl ::core::fmt::Display for SyncCommittee {
     fn fmt(&self, f: &mut ::core::fmt::Formatter) -> ::core::fmt::Result {
         write!(f, "{} {{ ", Self::NAME)?;
-        write!(f, "{}: {}", "pubkeys", self.pubkeys())?;
+        write!(f, "{}: {}", "period", self.period())?;
+        write!(f, ", {}: {}", "pubkeys", self.pubkeys())?;
         write!(f, ", {}: {}", "aggregate_pubkey", self.aggregate_pubkey())?;
         write!(f, " }}")
     }
@@ -14453,20 +14823,23 @@ impl ::core::default::Default for SyncCommittee {
             0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
             0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
             0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-            0, 0,
+            0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
         ];
         SyncCommittee::new_unchecked(v.into())
     }
 }
 impl SyncCommittee {
-    pub const TOTAL_SIZE: usize = 16416;
-    pub const FIELD_SIZES: [usize; 2] = [16384, 32];
-    pub const FIELD_COUNT: usize = 2;
+    pub const TOTAL_SIZE: usize = 16424;
+    pub const FIELD_SIZES: [usize; 3] = [8, 16384, 32];
+    pub const FIELD_COUNT: usize = 3;
+    pub fn period(&self) -> Uint64 {
+        Uint64::new_unchecked(self.0.slice(0..8))
+    }
     pub fn pubkeys(&self) -> BlsPubkeyArray {
-        BlsPubkeyArray::new_unchecked(self.0.slice(0..16384))
+        BlsPubkeyArray::new_unchecked(self.0.slice(8..16392))
     }
     pub fn aggregate_pubkey(&self) -> BlsPubkey {
-        BlsPubkey::new_unchecked(self.0.slice(16384..16416))
+        BlsPubkey::new_unchecked(self.0.slice(16392..16424))
     }
     pub fn as_reader<'r>(&'r self) -> SyncCommitteeReader<'r> {
         SyncCommitteeReader::new_unchecked(self.as_slice())
@@ -14495,6 +14868,7 @@ impl molecule::prelude::Entity for SyncCommittee {
     }
     fn as_builder(self) -> Self::Builder {
         Self::new_builder()
+            .period(self.period())
             .pubkeys(self.pubkeys())
             .aggregate_pubkey(self.aggregate_pubkey())
     }
@@ -14518,20 +14892,24 @@ impl<'r> ::core::fmt::Debug for SyncCommitteeReader<'r> {
 impl<'r> ::core::fmt::Display for SyncCommitteeReader<'r> {
     fn fmt(&self, f: &mut ::core::fmt::Formatter) -> ::core::fmt::Result {
         write!(f, "{} {{ ", Self::NAME)?;
-        write!(f, "{}: {}", "pubkeys", self.pubkeys())?;
+        write!(f, "{}: {}", "period", self.period())?;
+        write!(f, ", {}: {}", "pubkeys", self.pubkeys())?;
         write!(f, ", {}: {}", "aggregate_pubkey", self.aggregate_pubkey())?;
         write!(f, " }}")
     }
 }
 impl<'r> SyncCommitteeReader<'r> {
-    pub const TOTAL_SIZE: usize = 16416;
-    pub const FIELD_SIZES: [usize; 2] = [16384, 32];
-    pub const FIELD_COUNT: usize = 2;
+    pub const TOTAL_SIZE: usize = 16424;
+    pub const FIELD_SIZES: [usize; 3] = [8, 16384, 32];
+    pub const FIELD_COUNT: usize = 3;
+    pub fn period(&self) -> Uint64Reader<'r> {
+        Uint64Reader::new_unchecked(&self.as_slice()[0..8])
+    }
     pub fn pubkeys(&self) -> BlsPubkeyArrayReader<'r> {
-        BlsPubkeyArrayReader::new_unchecked(&self.as_slice()[0..16384])
+        BlsPubkeyArrayReader::new_unchecked(&self.as_slice()[8..16392])
     }
     pub fn aggregate_pubkey(&self) -> BlsPubkeyReader<'r> {
-        BlsPubkeyReader::new_unchecked(&self.as_slice()[16384..16416])
+        BlsPubkeyReader::new_unchecked(&self.as_slice()[16392..16424])
     }
 }
 impl<'r> molecule::prelude::Reader<'r> for SyncCommitteeReader<'r> {
@@ -14557,13 +14935,18 @@ impl<'r> molecule::prelude::Reader<'r> for SyncCommitteeReader<'r> {
 }
 #[derive(Debug, Default)]
 pub struct SyncCommitteeBuilder {
+    pub(crate) period: Uint64,
     pub(crate) pubkeys: BlsPubkeyArray,
     pub(crate) aggregate_pubkey: BlsPubkey,
 }
 impl SyncCommitteeBuilder {
-    pub const TOTAL_SIZE: usize = 16416;
-    pub const FIELD_SIZES: [usize; 2] = [16384, 32];
-    pub const FIELD_COUNT: usize = 2;
+    pub const TOTAL_SIZE: usize = 16424;
+    pub const FIELD_SIZES: [usize; 3] = [8, 16384, 32];
+    pub const FIELD_COUNT: usize = 3;
+    pub fn period(mut self, v: Uint64) -> Self {
+        self.period = v;
+        self
+    }
     pub fn pubkeys(mut self, v: BlsPubkeyArray) -> Self {
         self.pubkeys = v;
         self
@@ -14580,6 +14963,7 @@ impl molecule::prelude::Builder for SyncCommitteeBuilder {
         Self::TOTAL_SIZE
     }
     fn write<W: molecule::io::Write>(&self, writer: &mut W) -> molecule::io::Result<()> {
+        writer.write_all(self.period.as_slice())?;
         writer.write_all(self.pubkeys.as_slice())?;
         writer.write_all(self.aggregate_pubkey.as_slice())?;
         Ok(())
@@ -14592,8 +14976,8 @@ impl molecule::prelude::Builder for SyncCommitteeBuilder {
     }
 }
 #[derive(Clone)]
-pub struct Eth2HeaderVec(molecule::bytes::Bytes);
-impl ::core::fmt::LowerHex for Eth2HeaderVec {
+pub struct HeaderVec(molecule::bytes::Bytes);
+impl ::core::fmt::LowerHex for HeaderVec {
     fn fmt(&self, f: &mut ::core::fmt::Formatter) -> ::core::fmt::Result {
         use molecule::hex_string;
         if f.alternate() {
@@ -14602,12 +14986,12 @@ impl ::core::fmt::LowerHex for Eth2HeaderVec {
         write!(f, "{}", hex_string(self.as_slice()))
     }
 }
-impl ::core::fmt::Debug for Eth2HeaderVec {
+impl ::core::fmt::Debug for HeaderVec {
     fn fmt(&self, f: &mut ::core::fmt::Formatter) -> ::core::fmt::Result {
         write!(f, "{}({:#x})", Self::NAME, self)
     }
 }
-impl ::core::fmt::Display for Eth2HeaderVec {
+impl ::core::fmt::Display for HeaderVec {
     fn fmt(&self, f: &mut ::core::fmt::Formatter) -> ::core::fmt::Result {
         write!(f, "{} [", Self::NAME)?;
         for i in 0..self.len() {
@@ -14620,14 +15004,14 @@ impl ::core::fmt::Display for Eth2HeaderVec {
         write!(f, "]")
     }
 }
-impl ::core::default::Default for Eth2HeaderVec {
+impl ::core::default::Default for HeaderVec {
     fn default() -> Self {
         let v: Vec<u8> = vec![0, 0, 0, 0];
-        Eth2HeaderVec::new_unchecked(v.into())
+        HeaderVec::new_unchecked(v.into())
     }
 }
-impl Eth2HeaderVec {
-    pub const ITEM_SIZE: usize = 40;
+impl HeaderVec {
+    pub const ITEM_SIZE: usize = 112;
     pub fn total_size(&self) -> usize {
         molecule::NUMBER_SIZE + Self::ITEM_SIZE * self.item_count()
     }
@@ -14640,27 +15024,27 @@ impl Eth2HeaderVec {
     pub fn is_empty(&self) -> bool {
         self.len() == 0
     }
-    pub fn get(&self, idx: usize) -> Option<Eth2Header> {
+    pub fn get(&self, idx: usize) -> Option<Header> {
         if idx >= self.len() {
             None
         } else {
             Some(self.get_unchecked(idx))
         }
     }
-    pub fn get_unchecked(&self, idx: usize) -> Eth2Header {
+    pub fn get_unchecked(&self, idx: usize) -> Header {
         let start = molecule::NUMBER_SIZE + Self::ITEM_SIZE * idx;
         let end = start + Self::ITEM_SIZE;
-        Eth2Header::new_unchecked(self.0.slice(start..end))
+        Header::new_unchecked(self.0.slice(start..end))
     }
-    pub fn as_reader<'r>(&'r self) -> Eth2HeaderVecReader<'r> {
-        Eth2HeaderVecReader::new_unchecked(self.as_slice())
+    pub fn as_reader<'r>(&'r self) -> HeaderVecReader<'r> {
+        HeaderVecReader::new_unchecked(self.as_slice())
     }
 }
-impl molecule::prelude::Entity for Eth2HeaderVec {
-    type Builder = Eth2HeaderVecBuilder;
-    const NAME: &'static str = "Eth2HeaderVec";
+impl molecule::prelude::Entity for HeaderVec {
+    type Builder = HeaderVecBuilder;
+    const NAME: &'static str = "HeaderVec";
     fn new_unchecked(data: molecule::bytes::Bytes) -> Self {
-        Eth2HeaderVec(data)
+        HeaderVec(data)
     }
     fn as_bytes(&self) -> molecule::bytes::Bytes {
         self.0.clone()
@@ -14669,10 +15053,10 @@ impl molecule::prelude::Entity for Eth2HeaderVec {
         &self.0[..]
     }
     fn from_slice(slice: &[u8]) -> molecule::error::VerificationResult<Self> {
-        Eth2HeaderVecReader::from_slice(slice).map(|reader| reader.to_entity())
+        HeaderVecReader::from_slice(slice).map(|reader| reader.to_entity())
     }
     fn from_compatible_slice(slice: &[u8]) -> molecule::error::VerificationResult<Self> {
-        Eth2HeaderVecReader::from_compatible_slice(slice).map(|reader| reader.to_entity())
+        HeaderVecReader::from_compatible_slice(slice).map(|reader| reader.to_entity())
     }
     fn new_builder() -> Self::Builder {
         ::core::default::Default::default()
@@ -14682,8 +15066,8 @@ impl molecule::prelude::Entity for Eth2HeaderVec {
     }
 }
 #[derive(Clone, Copy)]
-pub struct Eth2HeaderVecReader<'r>(&'r [u8]);
-impl<'r> ::core::fmt::LowerHex for Eth2HeaderVecReader<'r> {
+pub struct HeaderVecReader<'r>(&'r [u8]);
+impl<'r> ::core::fmt::LowerHex for HeaderVecReader<'r> {
     fn fmt(&self, f: &mut ::core::fmt::Formatter) -> ::core::fmt::Result {
         use molecule::hex_string;
         if f.alternate() {
@@ -14692,12 +15076,12 @@ impl<'r> ::core::fmt::LowerHex for Eth2HeaderVecReader<'r> {
         write!(f, "{}", hex_string(self.as_slice()))
     }
 }
-impl<'r> ::core::fmt::Debug for Eth2HeaderVecReader<'r> {
+impl<'r> ::core::fmt::Debug for HeaderVecReader<'r> {
     fn fmt(&self, f: &mut ::core::fmt::Formatter) -> ::core::fmt::Result {
         write!(f, "{}({:#x})", Self::NAME, self)
     }
 }
-impl<'r> ::core::fmt::Display for Eth2HeaderVecReader<'r> {
+impl<'r> ::core::fmt::Display for HeaderVecReader<'r> {
     fn fmt(&self, f: &mut ::core::fmt::Formatter) -> ::core::fmt::Result {
         write!(f, "{} [", Self::NAME)?;
         for i in 0..self.len() {
@@ -14710,8 +15094,8 @@ impl<'r> ::core::fmt::Display for Eth2HeaderVecReader<'r> {
         write!(f, "]")
     }
 }
-impl<'r> Eth2HeaderVecReader<'r> {
-    pub const ITEM_SIZE: usize = 40;
+impl<'r> HeaderVecReader<'r> {
+    pub const ITEM_SIZE: usize = 112;
     pub fn total_size(&self) -> usize {
         molecule::NUMBER_SIZE + Self::ITEM_SIZE * self.item_count()
     }
@@ -14724,27 +15108,27 @@ impl<'r> Eth2HeaderVecReader<'r> {
     pub fn is_empty(&self) -> bool {
         self.len() == 0
     }
-    pub fn get(&self, idx: usize) -> Option<Eth2HeaderReader<'r>> {
+    pub fn get(&self, idx: usize) -> Option<HeaderReader<'r>> {
         if idx >= self.len() {
             None
         } else {
             Some(self.get_unchecked(idx))
         }
     }
-    pub fn get_unchecked(&self, idx: usize) -> Eth2HeaderReader<'r> {
+    pub fn get_unchecked(&self, idx: usize) -> HeaderReader<'r> {
         let start = molecule::NUMBER_SIZE + Self::ITEM_SIZE * idx;
         let end = start + Self::ITEM_SIZE;
-        Eth2HeaderReader::new_unchecked(&self.as_slice()[start..end])
+        HeaderReader::new_unchecked(&self.as_slice()[start..end])
     }
 }
-impl<'r> molecule::prelude::Reader<'r> for Eth2HeaderVecReader<'r> {
-    type Entity = Eth2HeaderVec;
-    const NAME: &'static str = "Eth2HeaderVecReader";
+impl<'r> molecule::prelude::Reader<'r> for HeaderVecReader<'r> {
+    type Entity = HeaderVec;
+    const NAME: &'static str = "HeaderVecReader";
     fn to_entity(&self) -> Self::Entity {
         Self::Entity::new_unchecked(self.as_slice().to_owned().into())
     }
     fn new_unchecked(slice: &'r [u8]) -> Self {
-        Eth2HeaderVecReader(slice)
+        HeaderVecReader(slice)
     }
     fn as_slice(&self) -> &'r [u8] {
         self.0
@@ -14770,32 +15154,32 @@ impl<'r> molecule::prelude::Reader<'r> for Eth2HeaderVecReader<'r> {
     }
 }
 #[derive(Debug, Default)]
-pub struct Eth2HeaderVecBuilder(pub(crate) Vec<Eth2Header>);
-impl Eth2HeaderVecBuilder {
-    pub const ITEM_SIZE: usize = 40;
-    pub fn set(mut self, v: Vec<Eth2Header>) -> Self {
+pub struct HeaderVecBuilder(pub(crate) Vec<Header>);
+impl HeaderVecBuilder {
+    pub const ITEM_SIZE: usize = 112;
+    pub fn set(mut self, v: Vec<Header>) -> Self {
         self.0 = v;
         self
     }
-    pub fn push(mut self, v: Eth2Header) -> Self {
+    pub fn push(mut self, v: Header) -> Self {
         self.0.push(v);
         self
     }
-    pub fn extend<T: ::core::iter::IntoIterator<Item = Eth2Header>>(mut self, iter: T) -> Self {
+    pub fn extend<T: ::core::iter::IntoIterator<Item = Header>>(mut self, iter: T) -> Self {
         for elem in iter {
             self.0.push(elem);
         }
         self
     }
-    pub fn replace(&mut self, index: usize, v: Eth2Header) -> Option<Eth2Header> {
+    pub fn replace(&mut self, index: usize, v: Header) -> Option<Header> {
         self.0
             .get_mut(index)
             .map(|item| ::core::mem::replace(item, v))
     }
 }
-impl molecule::prelude::Builder for Eth2HeaderVecBuilder {
-    type Entity = Eth2HeaderVec;
-    const NAME: &'static str = "Eth2HeaderVecBuilder";
+impl molecule::prelude::Builder for HeaderVecBuilder {
+    type Entity = HeaderVec;
+    const NAME: &'static str = "HeaderVecBuilder";
     fn expected_length(&self) -> usize {
         molecule::NUMBER_SIZE + Self::ITEM_SIZE * self.0.len()
     }
@@ -14810,12 +15194,12 @@ impl molecule::prelude::Builder for Eth2HeaderVecBuilder {
         let mut inner = Vec::with_capacity(self.expected_length());
         self.write(&mut inner)
             .unwrap_or_else(|_| panic!("{} build should be ok", Self::NAME));
-        Eth2HeaderVec::new_unchecked(inner.into())
+        HeaderVec::new_unchecked(inner.into())
     }
 }
-pub struct Eth2HeaderVecIterator(Eth2HeaderVec, usize, usize);
-impl ::core::iter::Iterator for Eth2HeaderVecIterator {
-    type Item = Eth2Header;
+pub struct HeaderVecIterator(HeaderVec, usize, usize);
+impl ::core::iter::Iterator for HeaderVecIterator {
+    type Item = Header;
     fn next(&mut self) -> Option<Self::Item> {
         if self.1 >= self.2 {
             None
@@ -14826,27 +15210,27 @@ impl ::core::iter::Iterator for Eth2HeaderVecIterator {
         }
     }
 }
-impl ::core::iter::ExactSizeIterator for Eth2HeaderVecIterator {
+impl ::core::iter::ExactSizeIterator for HeaderVecIterator {
     fn len(&self) -> usize {
         self.2 - self.1
     }
 }
-impl ::core::iter::IntoIterator for Eth2HeaderVec {
-    type Item = Eth2Header;
-    type IntoIter = Eth2HeaderVecIterator;
+impl ::core::iter::IntoIterator for HeaderVec {
+    type Item = Header;
+    type IntoIter = HeaderVecIterator;
     fn into_iter(self) -> Self::IntoIter {
         let len = self.len();
-        Eth2HeaderVecIterator(self, 0, len)
+        HeaderVecIterator(self, 0, len)
     }
 }
-impl<'r> Eth2HeaderVecReader<'r> {
-    pub fn iter<'t>(&'t self) -> Eth2HeaderVecReaderIterator<'t, 'r> {
-        Eth2HeaderVecReaderIterator(&self, 0, self.len())
+impl<'r> HeaderVecReader<'r> {
+    pub fn iter<'t>(&'t self) -> HeaderVecReaderIterator<'t, 'r> {
+        HeaderVecReaderIterator(&self, 0, self.len())
     }
 }
-pub struct Eth2HeaderVecReaderIterator<'t, 'r>(&'t Eth2HeaderVecReader<'r>, usize, usize);
-impl<'t: 'r, 'r> ::core::iter::Iterator for Eth2HeaderVecReaderIterator<'t, 'r> {
-    type Item = Eth2HeaderReader<'t>;
+pub struct HeaderVecReaderIterator<'t, 'r>(&'t HeaderVecReader<'r>, usize, usize);
+impl<'t: 'r, 'r> ::core::iter::Iterator for HeaderVecReaderIterator<'t, 'r> {
+    type Item = HeaderReader<'t>;
     fn next(&mut self) -> Option<Self::Item> {
         if self.1 >= self.2 {
             None
@@ -14857,14 +15241,14 @@ impl<'t: 'r, 'r> ::core::iter::Iterator for Eth2HeaderVecReaderIterator<'t, 'r> 
         }
     }
 }
-impl<'t: 'r, 'r> ::core::iter::ExactSizeIterator for Eth2HeaderVecReaderIterator<'t, 'r> {
+impl<'t: 'r, 'r> ::core::iter::ExactSizeIterator for HeaderVecReaderIterator<'t, 'r> {
     fn len(&self) -> usize {
         self.2 - self.1
     }
 }
 #[derive(Clone)]
-pub struct Eth2UpdateVec(molecule::bytes::Bytes);
-impl ::core::fmt::LowerHex for Eth2UpdateVec {
+pub struct FinalityUpdateVec(molecule::bytes::Bytes);
+impl ::core::fmt::LowerHex for FinalityUpdateVec {
     fn fmt(&self, f: &mut ::core::fmt::Formatter) -> ::core::fmt::Result {
         use molecule::hex_string;
         if f.alternate() {
@@ -14873,12 +15257,12 @@ impl ::core::fmt::LowerHex for Eth2UpdateVec {
         write!(f, "{}", hex_string(self.as_slice()))
     }
 }
-impl ::core::fmt::Debug for Eth2UpdateVec {
+impl ::core::fmt::Debug for FinalityUpdateVec {
     fn fmt(&self, f: &mut ::core::fmt::Formatter) -> ::core::fmt::Result {
         write!(f, "{}({:#x})", Self::NAME, self)
     }
 }
-impl ::core::fmt::Display for Eth2UpdateVec {
+impl ::core::fmt::Display for FinalityUpdateVec {
     fn fmt(&self, f: &mut ::core::fmt::Formatter) -> ::core::fmt::Result {
         write!(f, "{} [", Self::NAME)?;
         for i in 0..self.len() {
@@ -14891,13 +15275,13 @@ impl ::core::fmt::Display for Eth2UpdateVec {
         write!(f, "]")
     }
 }
-impl ::core::default::Default for Eth2UpdateVec {
+impl ::core::default::Default for FinalityUpdateVec {
     fn default() -> Self {
         let v: Vec<u8> = vec![4, 0, 0, 0];
-        Eth2UpdateVec::new_unchecked(v.into())
+        FinalityUpdateVec::new_unchecked(v.into())
     }
 }
-impl Eth2UpdateVec {
+impl FinalityUpdateVec {
     pub fn total_size(&self) -> usize {
         molecule::unpack_number(self.as_slice()) as usize
     }
@@ -14914,34 +15298,34 @@ impl Eth2UpdateVec {
     pub fn is_empty(&self) -> bool {
         self.len() == 0
     }
-    pub fn get(&self, idx: usize) -> Option<Bytes> {
+    pub fn get(&self, idx: usize) -> Option<FinalityUpdate> {
         if idx >= self.len() {
             None
         } else {
             Some(self.get_unchecked(idx))
         }
     }
-    pub fn get_unchecked(&self, idx: usize) -> Bytes {
+    pub fn get_unchecked(&self, idx: usize) -> FinalityUpdate {
         let slice = self.as_slice();
         let start_idx = molecule::NUMBER_SIZE * (1 + idx);
         let start = molecule::unpack_number(&slice[start_idx..]) as usize;
         if idx == self.len() - 1 {
-            Bytes::new_unchecked(self.0.slice(start..))
+            FinalityUpdate::new_unchecked(self.0.slice(start..))
         } else {
             let end_idx = start_idx + molecule::NUMBER_SIZE;
             let end = molecule::unpack_number(&slice[end_idx..]) as usize;
-            Bytes::new_unchecked(self.0.slice(start..end))
+            FinalityUpdate::new_unchecked(self.0.slice(start..end))
         }
     }
-    pub fn as_reader<'r>(&'r self) -> Eth2UpdateVecReader<'r> {
-        Eth2UpdateVecReader::new_unchecked(self.as_slice())
+    pub fn as_reader<'r>(&'r self) -> FinalityUpdateVecReader<'r> {
+        FinalityUpdateVecReader::new_unchecked(self.as_slice())
     }
 }
-impl molecule::prelude::Entity for Eth2UpdateVec {
-    type Builder = Eth2UpdateVecBuilder;
-    const NAME: &'static str = "Eth2UpdateVec";
+impl molecule::prelude::Entity for FinalityUpdateVec {
+    type Builder = FinalityUpdateVecBuilder;
+    const NAME: &'static str = "FinalityUpdateVec";
     fn new_unchecked(data: molecule::bytes::Bytes) -> Self {
-        Eth2UpdateVec(data)
+        FinalityUpdateVec(data)
     }
     fn as_bytes(&self) -> molecule::bytes::Bytes {
         self.0.clone()
@@ -14950,10 +15334,10 @@ impl molecule::prelude::Entity for Eth2UpdateVec {
         &self.0[..]
     }
     fn from_slice(slice: &[u8]) -> molecule::error::VerificationResult<Self> {
-        Eth2UpdateVecReader::from_slice(slice).map(|reader| reader.to_entity())
+        FinalityUpdateVecReader::from_slice(slice).map(|reader| reader.to_entity())
     }
     fn from_compatible_slice(slice: &[u8]) -> molecule::error::VerificationResult<Self> {
-        Eth2UpdateVecReader::from_compatible_slice(slice).map(|reader| reader.to_entity())
+        FinalityUpdateVecReader::from_compatible_slice(slice).map(|reader| reader.to_entity())
     }
     fn new_builder() -> Self::Builder {
         ::core::default::Default::default()
@@ -14963,8 +15347,8 @@ impl molecule::prelude::Entity for Eth2UpdateVec {
     }
 }
 #[derive(Clone, Copy)]
-pub struct Eth2UpdateVecReader<'r>(&'r [u8]);
-impl<'r> ::core::fmt::LowerHex for Eth2UpdateVecReader<'r> {
+pub struct FinalityUpdateVecReader<'r>(&'r [u8]);
+impl<'r> ::core::fmt::LowerHex for FinalityUpdateVecReader<'r> {
     fn fmt(&self, f: &mut ::core::fmt::Formatter) -> ::core::fmt::Result {
         use molecule::hex_string;
         if f.alternate() {
@@ -14973,12 +15357,12 @@ impl<'r> ::core::fmt::LowerHex for Eth2UpdateVecReader<'r> {
         write!(f, "{}", hex_string(self.as_slice()))
     }
 }
-impl<'r> ::core::fmt::Debug for Eth2UpdateVecReader<'r> {
+impl<'r> ::core::fmt::Debug for FinalityUpdateVecReader<'r> {
     fn fmt(&self, f: &mut ::core::fmt::Formatter) -> ::core::fmt::Result {
         write!(f, "{}({:#x})", Self::NAME, self)
     }
 }
-impl<'r> ::core::fmt::Display for Eth2UpdateVecReader<'r> {
+impl<'r> ::core::fmt::Display for FinalityUpdateVecReader<'r> {
     fn fmt(&self, f: &mut ::core::fmt::Formatter) -> ::core::fmt::Result {
         write!(f, "{} [", Self::NAME)?;
         for i in 0..self.len() {
@@ -14991,7 +15375,7 @@ impl<'r> ::core::fmt::Display for Eth2UpdateVecReader<'r> {
         write!(f, "]")
     }
 }
-impl<'r> Eth2UpdateVecReader<'r> {
+impl<'r> FinalityUpdateVecReader<'r> {
     pub fn total_size(&self) -> usize {
         molecule::unpack_number(self.as_slice()) as usize
     }
@@ -15008,34 +15392,34 @@ impl<'r> Eth2UpdateVecReader<'r> {
     pub fn is_empty(&self) -> bool {
         self.len() == 0
     }
-    pub fn get(&self, idx: usize) -> Option<BytesReader<'r>> {
+    pub fn get(&self, idx: usize) -> Option<FinalityUpdateReader<'r>> {
         if idx >= self.len() {
             None
         } else {
             Some(self.get_unchecked(idx))
         }
     }
-    pub fn get_unchecked(&self, idx: usize) -> BytesReader<'r> {
+    pub fn get_unchecked(&self, idx: usize) -> FinalityUpdateReader<'r> {
         let slice = self.as_slice();
         let start_idx = molecule::NUMBER_SIZE * (1 + idx);
         let start = molecule::unpack_number(&slice[start_idx..]) as usize;
         if idx == self.len() - 1 {
-            BytesReader::new_unchecked(&self.as_slice()[start..])
+            FinalityUpdateReader::new_unchecked(&self.as_slice()[start..])
         } else {
             let end_idx = start_idx + molecule::NUMBER_SIZE;
             let end = molecule::unpack_number(&slice[end_idx..]) as usize;
-            BytesReader::new_unchecked(&self.as_slice()[start..end])
+            FinalityUpdateReader::new_unchecked(&self.as_slice()[start..end])
         }
     }
 }
-impl<'r> molecule::prelude::Reader<'r> for Eth2UpdateVecReader<'r> {
-    type Entity = Eth2UpdateVec;
-    const NAME: &'static str = "Eth2UpdateVecReader";
+impl<'r> molecule::prelude::Reader<'r> for FinalityUpdateVecReader<'r> {
+    type Entity = FinalityUpdateVec;
+    const NAME: &'static str = "FinalityUpdateVecReader";
     fn to_entity(&self) -> Self::Entity {
         Self::Entity::new_unchecked(self.as_slice().to_owned().into())
     }
     fn new_unchecked(slice: &'r [u8]) -> Self {
-        Eth2UpdateVecReader(slice)
+        FinalityUpdateVecReader(slice)
     }
     fn as_slice(&self) -> &'r [u8] {
         self.0
@@ -15079,37 +15463,37 @@ impl<'r> molecule::prelude::Reader<'r> for Eth2UpdateVecReader<'r> {
         for pair in offsets.windows(2) {
             let start = pair[0];
             let end = pair[1];
-            BytesReader::verify(&slice[start..end], compatible)?;
+            FinalityUpdateReader::verify(&slice[start..end], compatible)?;
         }
         Ok(())
     }
 }
 #[derive(Debug, Default)]
-pub struct Eth2UpdateVecBuilder(pub(crate) Vec<Bytes>);
-impl Eth2UpdateVecBuilder {
-    pub fn set(mut self, v: Vec<Bytes>) -> Self {
+pub struct FinalityUpdateVecBuilder(pub(crate) Vec<FinalityUpdate>);
+impl FinalityUpdateVecBuilder {
+    pub fn set(mut self, v: Vec<FinalityUpdate>) -> Self {
         self.0 = v;
         self
     }
-    pub fn push(mut self, v: Bytes) -> Self {
+    pub fn push(mut self, v: FinalityUpdate) -> Self {
         self.0.push(v);
         self
     }
-    pub fn extend<T: ::core::iter::IntoIterator<Item = Bytes>>(mut self, iter: T) -> Self {
+    pub fn extend<T: ::core::iter::IntoIterator<Item = FinalityUpdate>>(mut self, iter: T) -> Self {
         for elem in iter {
             self.0.push(elem);
         }
         self
     }
-    pub fn replace(&mut self, index: usize, v: Bytes) -> Option<Bytes> {
+    pub fn replace(&mut self, index: usize, v: FinalityUpdate) -> Option<FinalityUpdate> {
         self.0
             .get_mut(index)
             .map(|item| ::core::mem::replace(item, v))
     }
 }
-impl molecule::prelude::Builder for Eth2UpdateVecBuilder {
-    type Entity = Eth2UpdateVec;
-    const NAME: &'static str = "Eth2UpdateVecBuilder";
+impl molecule::prelude::Builder for FinalityUpdateVecBuilder {
+    type Entity = FinalityUpdateVec;
+    const NAME: &'static str = "FinalityUpdateVecBuilder";
     fn expected_length(&self) -> usize {
         molecule::NUMBER_SIZE * (self.0.len() + 1)
             + self
@@ -15149,12 +15533,12 @@ impl molecule::prelude::Builder for Eth2UpdateVecBuilder {
         let mut inner = Vec::with_capacity(self.expected_length());
         self.write(&mut inner)
             .unwrap_or_else(|_| panic!("{} build should be ok", Self::NAME));
-        Eth2UpdateVec::new_unchecked(inner.into())
+        FinalityUpdateVec::new_unchecked(inner.into())
     }
 }
-pub struct Eth2UpdateVecIterator(Eth2UpdateVec, usize, usize);
-impl ::core::iter::Iterator for Eth2UpdateVecIterator {
-    type Item = Bytes;
+pub struct FinalityUpdateVecIterator(FinalityUpdateVec, usize, usize);
+impl ::core::iter::Iterator for FinalityUpdateVecIterator {
+    type Item = FinalityUpdate;
     fn next(&mut self) -> Option<Self::Item> {
         if self.1 >= self.2 {
             None
@@ -15165,27 +15549,27 @@ impl ::core::iter::Iterator for Eth2UpdateVecIterator {
         }
     }
 }
-impl ::core::iter::ExactSizeIterator for Eth2UpdateVecIterator {
+impl ::core::iter::ExactSizeIterator for FinalityUpdateVecIterator {
     fn len(&self) -> usize {
         self.2 - self.1
     }
 }
-impl ::core::iter::IntoIterator for Eth2UpdateVec {
-    type Item = Bytes;
-    type IntoIter = Eth2UpdateVecIterator;
+impl ::core::iter::IntoIterator for FinalityUpdateVec {
+    type Item = FinalityUpdate;
+    type IntoIter = FinalityUpdateVecIterator;
     fn into_iter(self) -> Self::IntoIter {
         let len = self.len();
-        Eth2UpdateVecIterator(self, 0, len)
+        FinalityUpdateVecIterator(self, 0, len)
     }
 }
-impl<'r> Eth2UpdateVecReader<'r> {
-    pub fn iter<'t>(&'t self) -> Eth2UpdateVecReaderIterator<'t, 'r> {
-        Eth2UpdateVecReaderIterator(&self, 0, self.len())
+impl<'r> FinalityUpdateVecReader<'r> {
+    pub fn iter<'t>(&'t self) -> FinalityUpdateVecReaderIterator<'t, 'r> {
+        FinalityUpdateVecReaderIterator(&self, 0, self.len())
     }
 }
-pub struct Eth2UpdateVecReaderIterator<'t, 'r>(&'t Eth2UpdateVecReader<'r>, usize, usize);
-impl<'t: 'r, 'r> ::core::iter::Iterator for Eth2UpdateVecReaderIterator<'t, 'r> {
-    type Item = BytesReader<'t>;
+pub struct FinalityUpdateVecReaderIterator<'t, 'r>(&'t FinalityUpdateVecReader<'r>, usize, usize);
+impl<'t: 'r, 'r> ::core::iter::Iterator for FinalityUpdateVecReaderIterator<'t, 'r> {
+    type Item = FinalityUpdateReader<'t>;
     fn next(&mut self) -> Option<Self::Item> {
         if self.1 >= self.2 {
             None
@@ -15196,7 +15580,7 @@ impl<'t: 'r, 'r> ::core::iter::Iterator for Eth2UpdateVecReaderIterator<'t, 'r> 
         }
     }
 }
-impl<'t: 'r, 'r> ::core::iter::ExactSizeIterator for Eth2UpdateVecReaderIterator<'t, 'r> {
+impl<'t: 'r, 'r> ::core::iter::ExactSizeIterator for FinalityUpdateVecReaderIterator<'t, 'r> {
     fn len(&self) -> usize {
         self.2 - self.1
     }
@@ -15222,6 +15606,7 @@ impl ::core::fmt::Display for Client {
         write!(f, "{} {{ ", Self::NAME)?;
         write!(f, "{}: {}", "minimal_slot", self.minimal_slot())?;
         write!(f, ", {}: {}", "maximal_slot", self.maximal_slot())?;
+        write!(f, ", {}: {}", "tip_header_root", self.tip_header_root())?;
         write!(f, ", {}: {}", "headers_mmr_root", self.headers_mmr_root())?;
         write!(f, " }}")
     }
@@ -15231,23 +15616,26 @@ impl ::core::default::Default for Client {
         let v: Vec<u8> = vec![
             0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
             0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-            0, 0, 0, 0, 0, 0,
+            0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
         ];
         Client::new_unchecked(v.into())
     }
 }
 impl Client {
-    pub const TOTAL_SIZE: usize = 64;
-    pub const FIELD_SIZES: [usize; 3] = [8, 8, 48];
-    pub const FIELD_COUNT: usize = 3;
+    pub const TOTAL_SIZE: usize = 80;
+    pub const FIELD_SIZES: [usize; 4] = [8, 8, 32, 32];
+    pub const FIELD_COUNT: usize = 4;
     pub fn minimal_slot(&self) -> Uint64 {
         Uint64::new_unchecked(self.0.slice(0..8))
     }
     pub fn maximal_slot(&self) -> Uint64 {
         Uint64::new_unchecked(self.0.slice(8..16))
     }
+    pub fn tip_header_root(&self) -> Hash {
+        Hash::new_unchecked(self.0.slice(16..48))
+    }
     pub fn headers_mmr_root(&self) -> HeaderDigest {
-        HeaderDigest::new_unchecked(self.0.slice(16..64))
+        HeaderDigest::new_unchecked(self.0.slice(48..80))
     }
     pub fn as_reader<'r>(&'r self) -> ClientReader<'r> {
         ClientReader::new_unchecked(self.as_slice())
@@ -15278,6 +15666,7 @@ impl molecule::prelude::Entity for Client {
         Self::new_builder()
             .minimal_slot(self.minimal_slot())
             .maximal_slot(self.maximal_slot())
+            .tip_header_root(self.tip_header_root())
             .headers_mmr_root(self.headers_mmr_root())
     }
 }
@@ -15302,22 +15691,26 @@ impl<'r> ::core::fmt::Display for ClientReader<'r> {
         write!(f, "{} {{ ", Self::NAME)?;
         write!(f, "{}: {}", "minimal_slot", self.minimal_slot())?;
         write!(f, ", {}: {}", "maximal_slot", self.maximal_slot())?;
+        write!(f, ", {}: {}", "tip_header_root", self.tip_header_root())?;
         write!(f, ", {}: {}", "headers_mmr_root", self.headers_mmr_root())?;
         write!(f, " }}")
     }
 }
 impl<'r> ClientReader<'r> {
-    pub const TOTAL_SIZE: usize = 64;
-    pub const FIELD_SIZES: [usize; 3] = [8, 8, 48];
-    pub const FIELD_COUNT: usize = 3;
+    pub const TOTAL_SIZE: usize = 80;
+    pub const FIELD_SIZES: [usize; 4] = [8, 8, 32, 32];
+    pub const FIELD_COUNT: usize = 4;
     pub fn minimal_slot(&self) -> Uint64Reader<'r> {
         Uint64Reader::new_unchecked(&self.as_slice()[0..8])
     }
     pub fn maximal_slot(&self) -> Uint64Reader<'r> {
         Uint64Reader::new_unchecked(&self.as_slice()[8..16])
     }
+    pub fn tip_header_root(&self) -> HashReader<'r> {
+        HashReader::new_unchecked(&self.as_slice()[16..48])
+    }
     pub fn headers_mmr_root(&self) -> HeaderDigestReader<'r> {
-        HeaderDigestReader::new_unchecked(&self.as_slice()[16..64])
+        HeaderDigestReader::new_unchecked(&self.as_slice()[48..80])
     }
 }
 impl<'r> molecule::prelude::Reader<'r> for ClientReader<'r> {
@@ -15345,18 +15738,23 @@ impl<'r> molecule::prelude::Reader<'r> for ClientReader<'r> {
 pub struct ClientBuilder {
     pub(crate) minimal_slot: Uint64,
     pub(crate) maximal_slot: Uint64,
+    pub(crate) tip_header_root: Hash,
     pub(crate) headers_mmr_root: HeaderDigest,
 }
 impl ClientBuilder {
-    pub const TOTAL_SIZE: usize = 64;
-    pub const FIELD_SIZES: [usize; 3] = [8, 8, 48];
-    pub const FIELD_COUNT: usize = 3;
+    pub const TOTAL_SIZE: usize = 80;
+    pub const FIELD_SIZES: [usize; 4] = [8, 8, 32, 32];
+    pub const FIELD_COUNT: usize = 4;
     pub fn minimal_slot(mut self, v: Uint64) -> Self {
         self.minimal_slot = v;
         self
     }
     pub fn maximal_slot(mut self, v: Uint64) -> Self {
         self.maximal_slot = v;
+        self
+    }
+    pub fn tip_header_root(mut self, v: Hash) -> Self {
+        self.tip_header_root = v;
         self
     }
     pub fn headers_mmr_root(mut self, v: HeaderDigest) -> Self {
@@ -15373,6 +15771,7 @@ impl molecule::prelude::Builder for ClientBuilder {
     fn write<W: molecule::io::Write>(&self, writer: &mut W) -> molecule::io::Result<()> {
         writer.write_all(self.minimal_slot.as_slice())?;
         writer.write_all(self.maximal_slot.as_slice())?;
+        writer.write_all(self.tip_header_root.as_slice())?;
         writer.write_all(self.headers_mmr_root.as_slice())?;
         Ok(())
     }
@@ -15402,10 +15801,9 @@ impl ::core::fmt::Debug for HeadersUpdate {
 impl ::core::fmt::Display for HeadersUpdate {
     fn fmt(&self, f: &mut ::core::fmt::Formatter) -> ::core::fmt::Result {
         write!(f, "{} {{ ", Self::NAME)?;
-        write!(f, "{}: {}", "tip_header", self.tip_header())?;
         write!(
             f,
-            ", {}: {}",
+            "{}: {}",
             "tip_header_mmr_proof",
             self.tip_header_mmr_proof()
         )?;
@@ -15433,17 +15831,15 @@ impl ::core::fmt::Display for HeadersUpdate {
 impl ::core::default::Default for HeadersUpdate {
     fn default() -> Self {
         let v: Vec<u8> = vec![
-            132, 0, 0, 0, 28, 0, 0, 0, 68, 0, 0, 0, 72, 0, 0, 0, 76, 0, 0, 0, 80, 0, 0, 0, 128, 0,
-            0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-            0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 4, 0, 0, 0, 0, 0, 0, 0,
-            0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-            0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+            72, 0, 0, 0, 24, 0, 0, 0, 28, 0, 0, 0, 32, 0, 0, 0, 36, 0, 0, 0, 68, 0, 0, 0, 0, 0, 0,
+            0, 0, 0, 0, 0, 4, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+            0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
         ];
         HeadersUpdate::new_unchecked(v.into())
     }
 }
 impl HeadersUpdate {
-    pub const FIELD_COUNT: usize = 6;
+    pub const FIELD_COUNT: usize = 5;
     pub fn total_size(&self) -> usize {
         molecule::unpack_number(self.as_slice()) as usize
     }
@@ -15460,41 +15856,35 @@ impl HeadersUpdate {
     pub fn has_extra_fields(&self) -> bool {
         Self::FIELD_COUNT != self.field_count()
     }
-    pub fn tip_header(&self) -> Eth2Header {
+    pub fn tip_header_mmr_proof(&self) -> MmrProof {
         let slice = self.as_slice();
         let start = molecule::unpack_number(&slice[4..]) as usize;
         let end = molecule::unpack_number(&slice[8..]) as usize;
-        Eth2Header::new_unchecked(self.0.slice(start..end))
+        MmrProof::new_unchecked(self.0.slice(start..end))
     }
-    pub fn tip_header_mmr_proof(&self) -> MmrProof {
+    pub fn headers(&self) -> HeaderVec {
         let slice = self.as_slice();
         let start = molecule::unpack_number(&slice[8..]) as usize;
         let end = molecule::unpack_number(&slice[12..]) as usize;
-        MmrProof::new_unchecked(self.0.slice(start..end))
+        HeaderVec::new_unchecked(self.0.slice(start..end))
     }
-    pub fn headers(&self) -> Eth2HeaderVec {
+    pub fn updates(&self) -> FinalityUpdateVec {
         let slice = self.as_slice();
         let start = molecule::unpack_number(&slice[12..]) as usize;
         let end = molecule::unpack_number(&slice[16..]) as usize;
-        Eth2HeaderVec::new_unchecked(self.0.slice(start..end))
-    }
-    pub fn updates(&self) -> Eth2UpdateVec {
-        let slice = self.as_slice();
-        let start = molecule::unpack_number(&slice[16..]) as usize;
-        let end = molecule::unpack_number(&slice[20..]) as usize;
-        Eth2UpdateVec::new_unchecked(self.0.slice(start..end))
+        FinalityUpdateVec::new_unchecked(self.0.slice(start..end))
     }
     pub fn new_headers_mmr_root(&self) -> HeaderDigest {
         let slice = self.as_slice();
-        let start = molecule::unpack_number(&slice[20..]) as usize;
-        let end = molecule::unpack_number(&slice[24..]) as usize;
+        let start = molecule::unpack_number(&slice[16..]) as usize;
+        let end = molecule::unpack_number(&slice[20..]) as usize;
         HeaderDigest::new_unchecked(self.0.slice(start..end))
     }
     pub fn new_headers_mmr_proof(&self) -> MmrProof {
         let slice = self.as_slice();
-        let start = molecule::unpack_number(&slice[24..]) as usize;
+        let start = molecule::unpack_number(&slice[20..]) as usize;
         if self.has_extra_fields() {
-            let end = molecule::unpack_number(&slice[28..]) as usize;
+            let end = molecule::unpack_number(&slice[24..]) as usize;
             MmrProof::new_unchecked(self.0.slice(start..end))
         } else {
             MmrProof::new_unchecked(self.0.slice(start..))
@@ -15527,7 +15917,6 @@ impl molecule::prelude::Entity for HeadersUpdate {
     }
     fn as_builder(self) -> Self::Builder {
         Self::new_builder()
-            .tip_header(self.tip_header())
             .tip_header_mmr_proof(self.tip_header_mmr_proof())
             .headers(self.headers())
             .updates(self.updates())
@@ -15554,10 +15943,9 @@ impl<'r> ::core::fmt::Debug for HeadersUpdateReader<'r> {
 impl<'r> ::core::fmt::Display for HeadersUpdateReader<'r> {
     fn fmt(&self, f: &mut ::core::fmt::Formatter) -> ::core::fmt::Result {
         write!(f, "{} {{ ", Self::NAME)?;
-        write!(f, "{}: {}", "tip_header", self.tip_header())?;
         write!(
             f,
-            ", {}: {}",
+            "{}: {}",
             "tip_header_mmr_proof",
             self.tip_header_mmr_proof()
         )?;
@@ -15583,7 +15971,7 @@ impl<'r> ::core::fmt::Display for HeadersUpdateReader<'r> {
     }
 }
 impl<'r> HeadersUpdateReader<'r> {
-    pub const FIELD_COUNT: usize = 6;
+    pub const FIELD_COUNT: usize = 5;
     pub fn total_size(&self) -> usize {
         molecule::unpack_number(self.as_slice()) as usize
     }
@@ -15600,41 +15988,35 @@ impl<'r> HeadersUpdateReader<'r> {
     pub fn has_extra_fields(&self) -> bool {
         Self::FIELD_COUNT != self.field_count()
     }
-    pub fn tip_header(&self) -> Eth2HeaderReader<'r> {
+    pub fn tip_header_mmr_proof(&self) -> MmrProofReader<'r> {
         let slice = self.as_slice();
         let start = molecule::unpack_number(&slice[4..]) as usize;
         let end = molecule::unpack_number(&slice[8..]) as usize;
-        Eth2HeaderReader::new_unchecked(&self.as_slice()[start..end])
+        MmrProofReader::new_unchecked(&self.as_slice()[start..end])
     }
-    pub fn tip_header_mmr_proof(&self) -> MmrProofReader<'r> {
+    pub fn headers(&self) -> HeaderVecReader<'r> {
         let slice = self.as_slice();
         let start = molecule::unpack_number(&slice[8..]) as usize;
         let end = molecule::unpack_number(&slice[12..]) as usize;
-        MmrProofReader::new_unchecked(&self.as_slice()[start..end])
+        HeaderVecReader::new_unchecked(&self.as_slice()[start..end])
     }
-    pub fn headers(&self) -> Eth2HeaderVecReader<'r> {
+    pub fn updates(&self) -> FinalityUpdateVecReader<'r> {
         let slice = self.as_slice();
         let start = molecule::unpack_number(&slice[12..]) as usize;
         let end = molecule::unpack_number(&slice[16..]) as usize;
-        Eth2HeaderVecReader::new_unchecked(&self.as_slice()[start..end])
-    }
-    pub fn updates(&self) -> Eth2UpdateVecReader<'r> {
-        let slice = self.as_slice();
-        let start = molecule::unpack_number(&slice[16..]) as usize;
-        let end = molecule::unpack_number(&slice[20..]) as usize;
-        Eth2UpdateVecReader::new_unchecked(&self.as_slice()[start..end])
+        FinalityUpdateVecReader::new_unchecked(&self.as_slice()[start..end])
     }
     pub fn new_headers_mmr_root(&self) -> HeaderDigestReader<'r> {
         let slice = self.as_slice();
-        let start = molecule::unpack_number(&slice[20..]) as usize;
-        let end = molecule::unpack_number(&slice[24..]) as usize;
+        let start = molecule::unpack_number(&slice[16..]) as usize;
+        let end = molecule::unpack_number(&slice[20..]) as usize;
         HeaderDigestReader::new_unchecked(&self.as_slice()[start..end])
     }
     pub fn new_headers_mmr_proof(&self) -> MmrProofReader<'r> {
         let slice = self.as_slice();
-        let start = molecule::unpack_number(&slice[24..]) as usize;
+        let start = molecule::unpack_number(&slice[20..]) as usize;
         if self.has_extra_fields() {
-            let end = molecule::unpack_number(&slice[28..]) as usize;
+            let end = molecule::unpack_number(&slice[24..]) as usize;
             MmrProofReader::new_unchecked(&self.as_slice()[start..end])
         } else {
             MmrProofReader::new_unchecked(&self.as_slice()[start..])
@@ -15690,39 +16072,33 @@ impl<'r> molecule::prelude::Reader<'r> for HeadersUpdateReader<'r> {
         if offsets.windows(2).any(|i| i[0] > i[1]) {
             return ve!(Self, OffsetsNotMatch);
         }
-        Eth2HeaderReader::verify(&slice[offsets[0]..offsets[1]], compatible)?;
-        MmrProofReader::verify(&slice[offsets[1]..offsets[2]], compatible)?;
-        Eth2HeaderVecReader::verify(&slice[offsets[2]..offsets[3]], compatible)?;
-        Eth2UpdateVecReader::verify(&slice[offsets[3]..offsets[4]], compatible)?;
-        HeaderDigestReader::verify(&slice[offsets[4]..offsets[5]], compatible)?;
-        MmrProofReader::verify(&slice[offsets[5]..offsets[6]], compatible)?;
+        MmrProofReader::verify(&slice[offsets[0]..offsets[1]], compatible)?;
+        HeaderVecReader::verify(&slice[offsets[1]..offsets[2]], compatible)?;
+        FinalityUpdateVecReader::verify(&slice[offsets[2]..offsets[3]], compatible)?;
+        HeaderDigestReader::verify(&slice[offsets[3]..offsets[4]], compatible)?;
+        MmrProofReader::verify(&slice[offsets[4]..offsets[5]], compatible)?;
         Ok(())
     }
 }
 #[derive(Debug, Default)]
 pub struct HeadersUpdateBuilder {
-    pub(crate) tip_header: Eth2Header,
     pub(crate) tip_header_mmr_proof: MmrProof,
-    pub(crate) headers: Eth2HeaderVec,
-    pub(crate) updates: Eth2UpdateVec,
+    pub(crate) headers: HeaderVec,
+    pub(crate) updates: FinalityUpdateVec,
     pub(crate) new_headers_mmr_root: HeaderDigest,
     pub(crate) new_headers_mmr_proof: MmrProof,
 }
 impl HeadersUpdateBuilder {
-    pub const FIELD_COUNT: usize = 6;
-    pub fn tip_header(mut self, v: Eth2Header) -> Self {
-        self.tip_header = v;
-        self
-    }
+    pub const FIELD_COUNT: usize = 5;
     pub fn tip_header_mmr_proof(mut self, v: MmrProof) -> Self {
         self.tip_header_mmr_proof = v;
         self
     }
-    pub fn headers(mut self, v: Eth2HeaderVec) -> Self {
+    pub fn headers(mut self, v: HeaderVec) -> Self {
         self.headers = v;
         self
     }
-    pub fn updates(mut self, v: Eth2UpdateVec) -> Self {
+    pub fn updates(mut self, v: FinalityUpdateVec) -> Self {
         self.updates = v;
         self
     }
@@ -15740,7 +16116,6 @@ impl molecule::prelude::Builder for HeadersUpdateBuilder {
     const NAME: &'static str = "HeadersUpdateBuilder";
     fn expected_length(&self) -> usize {
         molecule::NUMBER_SIZE * (Self::FIELD_COUNT + 1)
-            + self.tip_header.as_slice().len()
             + self.tip_header_mmr_proof.as_slice().len()
             + self.headers.as_slice().len()
             + self.updates.as_slice().len()
@@ -15750,8 +16125,6 @@ impl molecule::prelude::Builder for HeadersUpdateBuilder {
     fn write<W: molecule::io::Write>(&self, writer: &mut W) -> molecule::io::Result<()> {
         let mut total_size = molecule::NUMBER_SIZE * (Self::FIELD_COUNT + 1);
         let mut offsets = Vec::with_capacity(Self::FIELD_COUNT);
-        offsets.push(total_size);
-        total_size += self.tip_header.as_slice().len();
         offsets.push(total_size);
         total_size += self.tip_header_mmr_proof.as_slice().len();
         offsets.push(total_size);
@@ -15766,7 +16139,6 @@ impl molecule::prelude::Builder for HeadersUpdateBuilder {
         for offset in offsets.into_iter() {
             writer.write_all(&molecule::pack_number(offset as molecule::Number))?;
         }
-        writer.write_all(self.tip_header.as_slice())?;
         writer.write_all(self.tip_header_mmr_proof.as_slice())?;
         writer.write_all(self.headers.as_slice())?;
         writer.write_all(self.updates.as_slice())?;
@@ -15827,11 +16199,14 @@ impl ::core::fmt::Display for TransactionProof {
 impl ::core::default::Default for TransactionProof {
     fn default() -> Self {
         let v: Vec<u8> = vec![
-            128, 0, 0, 0, 32, 0, 0, 0, 72, 0, 0, 0, 80, 0, 0, 0, 112, 0, 0, 0, 116, 0, 0, 0, 120,
-            0, 0, 0, 124, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+            200, 0, 0, 0, 32, 0, 0, 0, 144, 0, 0, 0, 152, 0, 0, 0, 184, 0, 0, 0, 188, 0, 0, 0, 192,
+            0, 0, 0, 196, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
             0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
             0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-            0, 0, 0, 0, 0, 0, 0, 0, 0, 4, 0, 0, 0, 0, 0, 0, 0,
+            0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+            0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+            0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 4, 0, 0, 0, 0, 0,
+            0, 0,
         ];
         TransactionProof::new_unchecked(v.into())
     }
@@ -15854,11 +16229,11 @@ impl TransactionProof {
     pub fn has_extra_fields(&self) -> bool {
         Self::FIELD_COUNT != self.field_count()
     }
-    pub fn header(&self) -> Eth2Header {
+    pub fn header(&self) -> Header {
         let slice = self.as_slice();
         let start = molecule::unpack_number(&slice[4..]) as usize;
         let end = molecule::unpack_number(&slice[8..]) as usize;
-        Eth2Header::new_unchecked(self.0.slice(start..end))
+        Header::new_unchecked(self.0.slice(start..end))
     }
     pub fn transaction_index(&self) -> Uint64 {
         let slice = self.as_slice();
@@ -15997,11 +16372,11 @@ impl<'r> TransactionProofReader<'r> {
     pub fn has_extra_fields(&self) -> bool {
         Self::FIELD_COUNT != self.field_count()
     }
-    pub fn header(&self) -> Eth2HeaderReader<'r> {
+    pub fn header(&self) -> HeaderReader<'r> {
         let slice = self.as_slice();
         let start = molecule::unpack_number(&slice[4..]) as usize;
         let end = molecule::unpack_number(&slice[8..]) as usize;
-        Eth2HeaderReader::new_unchecked(&self.as_slice()[start..end])
+        HeaderReader::new_unchecked(&self.as_slice()[start..end])
     }
     pub fn transaction_index(&self) -> Uint64Reader<'r> {
         let slice = self.as_slice();
@@ -16093,7 +16468,7 @@ impl<'r> molecule::prelude::Reader<'r> for TransactionProofReader<'r> {
         if offsets.windows(2).any(|i| i[0] > i[1]) {
             return ve!(Self, OffsetsNotMatch);
         }
-        Eth2HeaderReader::verify(&slice[offsets[0]..offsets[1]], compatible)?;
+        HeaderReader::verify(&slice[offsets[0]..offsets[1]], compatible)?;
         Uint64Reader::verify(&slice[offsets[1]..offsets[2]], compatible)?;
         HashReader::verify(&slice[offsets[2]..offsets[3]], compatible)?;
         MmrProofReader::verify(&slice[offsets[3]..offsets[4]], compatible)?;
@@ -16105,7 +16480,7 @@ impl<'r> molecule::prelude::Reader<'r> for TransactionProofReader<'r> {
 }
 #[derive(Debug, Default)]
 pub struct TransactionProofBuilder {
-    pub(crate) header: Eth2Header,
+    pub(crate) header: Header,
     pub(crate) transaction_index: Uint64,
     pub(crate) receipts_root: Hash,
     pub(crate) header_mmr_proof: MmrProof,
@@ -16115,7 +16490,7 @@ pub struct TransactionProofBuilder {
 }
 impl TransactionProofBuilder {
     pub const FIELD_COUNT: usize = 7;
-    pub fn header(mut self, v: Eth2Header) -> Self {
+    pub fn header(mut self, v: Header) -> Self {
         self.header = v;
         self
     }
