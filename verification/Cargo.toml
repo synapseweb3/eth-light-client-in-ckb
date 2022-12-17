@@ -13,14 +13,14 @@ molecule         = { version = "=0.7.3", default-features = false }
 ckb-mmr          = { version = "0.5.1", default-features = false, package = "ckb-merkle-mountain-range" }
 rlp              = { version = "0.5.2", default-features = false }
 tiny-keccak      = { version = "2.0.2", features = ["keccak"] }
-eth2_ssz         = { git = "https://github.com/yangby-cryptape/lighthouse", rev = "ebfccf0" }
-eth2_ssz_types   = { git = "https://github.com/yangby-cryptape/lighthouse", rev = "ebfccf0" }
-eth2_ssz_derive  = { git = "https://github.com/yangby-cryptape/lighthouse", rev = "ebfccf0" }
-tree_hash        = { git = "https://github.com/yangby-cryptape/lighthouse", rev = "ebfccf0" }
-tree_hash_derive = { git = "https://github.com/yangby-cryptape/lighthouse", rev = "ebfccf0" }
-merkle_proof     = { git = "https://github.com/yangby-cryptape/lighthouse", rev = "ebfccf0" }
-eth2_hashing     = { git = "https://github.com/yangby-cryptape/lighthouse", rev = "ebfccf0" }
-eth2_types       = { git = "https://github.com/yangby-cryptape/lighthouse", rev = "ebfccf0", package = "types", optional = true }
+eth2_hashing     = { version = "0.3.0", default-features = false, git = "https://github.com/yangby-cryptape/lighthouse", rev = "62dc610" }
+eth2_ssz         = { version = "0.4.1", default-features = false, git = "https://github.com/yangby-cryptape/lighthouse", rev = "62dc610" }
+eth2_ssz_types   = { version = "0.2.2", default-features = false, git = "https://github.com/yangby-cryptape/lighthouse", rev = "62dc610" }
+tree_hash        = { version = "0.4.1", default-features = false, git = "https://github.com/yangby-cryptape/lighthouse", rev = "62dc610" }
+merkle_proof     = { version = "0.2.0", default-features = false, git = "https://github.com/yangby-cryptape/lighthouse", rev = "62dc610" }
+eth2_ssz_derive  = { git = "https://github.com/yangby-cryptape/lighthouse", rev = "62dc610" }
+tree_hash_derive = { git = "https://github.com/yangby-cryptape/lighthouse", rev = "62dc610" }
+eth2_types       = { git = "https://github.com/yangby-cryptape/lighthouse", rev = "62dc610", package = "types", optional = true }
 
 [dev-dependencies]
 eth_light_client_in_ckb-prover = { version = "0.1.0-alpha.0", path = "../prover" }
@@ -30,7 +30,6 @@ ethers-core = "1.0.2"
 
 [features]
 default = ["std"]
-# TODO fix no-std
 std = [
     "molecule/std",
     "ckb-mmr/std",
