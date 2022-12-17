@@ -55,14 +55,13 @@ struct Client {
     headers_mmr_root: HeaderDigest,
 }
 
-table HeadersUpdate {
-    headers: HeaderVec,
-    // TODO unverified field
-    updates: FinalityUpdateVec,
-
+table ProofUpdate {
+    current_committee: SyncCommittee,
+    next_committee: SyncCommittee,
     new_headers_mmr_root: HeaderDigest,
-    // Prove the new headers are in the new headers_mmr_root.
+    next_committee_ssz_proof: SszProof,
     new_headers_mmr_proof: MmrProof,
+    updates: FinalityUpdateVec,
 }
 
 table TransactionProof {

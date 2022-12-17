@@ -30,29 +30,33 @@ impl core::Client {
     }
 
     #[allow(clippy::result_unit_err)] // TODO fix clippy
-    pub fn try_apply_packed_updates(
+    pub fn try_apply_packed_proof_update(
         &self,
-        packed_updates: packed::HeadersUpdateReader,
+        packed_proof_update: packed::ProofUpdateReader,
     ) -> Result<Self, ()> {
-        // Simplest Checks
-        if packed_updates.headers().is_empty()
-            || packed_updates.updates().is_empty()
-            || packed_updates.headers().len() != packed_updates.updates().len()
-        {
+        let updates = packed_proof_update.updates();
+
+        // At least, there should has 1 new header.
+        if updates.is_empty() {
             return Err(());
         }
 
-        let headers = packed_updates.headers().unpack();
+        let updates_len = updates.len();
+        let mut updates_iter = updates.iter();
 
-        // Check Old Tip Header
+        let mut cached_finalized_headers = Vec::with_capacity(updates_len);
+        let mut prev_cached_header: mmr::HeaderWithCache;
+        let mut curr_header: core::Header;
+        let mut digests_with_positions = Vec::with_capacity(updates_len);
+        let mut header_mmr_index = self.maximal_slot - self.minimal_slot;
+
+        // Check Old Tip Header (the first header)
         {
-            let first_header = &headers[0];
-
-            if first_header.slot != self.maximal_slot + 1 {
+            curr_header = updates_iter.next().unwrap().finalized_header().unpack();
+            if curr_header.slot != self.maximal_slot + 1 {
                 return Err(());
             }
-
-            if first_header.parent_root != self.tip_header_root {
+            if curr_header.parent_root != self.tip_header_root {
                 return Err(());
             }
         }
@@ -60,47 +64,56 @@ impl core::Client {
         // Check Updates
         {
             // Check if updates are continuous
-            for pair in headers.windows(2) {
-                if pair[0].slot + 1 != pair[1].slot {
+            for update in updates_iter {
+                header_mmr_index += 1;
+                prev_cached_header = curr_header.calc_cache();
+                curr_header = update.finalized_header().unpack();
+
+                if prev_cached_header.inner.slot + 1 != curr_header.slot {
                     return Err(());
                 }
-                if pair[1].parent_root != pair[0].tree_hash_root() {
+
+                if prev_cached_header.root != curr_header.parent_root {
                     return Err(());
                 }
+
+                // TODO verify more, such as BLS
+
+                let position = leaf_index_to_pos(header_mmr_index);
+                let digest = prev_cached_header.digest();
+
+                cached_finalized_headers.push(prev_cached_header);
+                digests_with_positions.push((position, digest));
             }
+        }
 
-            // TODO verify more, such as BLS
-        };
+        let new_maximal_slot = curr_header.slot;
 
-        let new_tip_index = headers.len() - 1;
-        let maximal_slot = headers[new_tip_index].slot;
+        // Handle the last update
+        {
+            header_mmr_index += 1;
+            prev_cached_header = curr_header.calc_cache();
+            let position = leaf_index_to_pos(header_mmr_index);
+            let digest = prev_cached_header.digest();
+            cached_finalized_headers.push(prev_cached_header);
+            digests_with_positions.push((position, digest));
+        }
 
         // Check New MMR Root
         {
             let proof: mmr::MMRProof = {
-                let max_index = maximal_slot - self.minimal_slot;
+                let max_index = new_maximal_slot - self.minimal_slot;
                 let mmr_size = leaf_index_to_mmr_size(max_index);
-                let proof = packed_updates
+                let proof = packed_proof_update
                     .new_headers_mmr_proof()
                     .iter()
                     .map(|r| r.to_entity())
                     .collect::<Vec<_>>();
                 mmr::MMRProof::new(mmr_size, proof)
             };
-            let digests_with_positions = packed_updates
-                .headers()
-                .iter()
-                .map(|header| {
-                    let header_slot = header.slot().unpack();
-                    let index = header_slot - self.minimal_slot;
-                    let position = leaf_index_to_pos(index);
-                    let digest = header.digest();
-                    (position, digest)
-                })
-                .collect::<Vec<_>>();
             let result = proof
                 .verify(
-                    packed_updates.new_headers_mmr_root().to_entity(),
+                    packed_proof_update.new_headers_mmr_root().to_entity(),
                     digests_with_positions,
                 )
                 .unwrap_or(false);
@@ -109,11 +122,13 @@ impl core::Client {
             }
         }
 
+        let new_tip_header_root = cached_finalized_headers[updates_len - 1].root;
+        let new_headers_mmr_root = packed_proof_update.new_headers_mmr_root().unpack();
         let new_client = Self {
             minimal_slot: self.minimal_slot,
-            maximal_slot,
-            tip_header_root: headers[new_tip_index].tree_hash_root(),
-            headers_mmr_root: packed_updates.new_headers_mmr_root().unpack(),
+            maximal_slot: new_maximal_slot,
+            tip_header_root: new_tip_header_root,
+            headers_mmr_root: new_headers_mmr_root,
         };
 
         Ok(new_client)
@@ -137,7 +152,7 @@ impl core::Client {
         let digests_with_positions = {
             let index = header_slot - self.minimal_slot;
             let position = leaf_index_to_pos(index);
-            let digest = header.digest();
+            let digest = header.unpack().calc_cache().digest();
             vec![(position, digest)]
         };
         proof

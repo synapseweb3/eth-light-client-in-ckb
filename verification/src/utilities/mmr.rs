@@ -6,7 +6,7 @@ use eth2_hashing::{hash32_concat, hash_fixed, HASH_LEN};
 use eth2_types::{BeaconBlockHeader, Slot};
 use tree_hash::{Hash256, TreeHash as _};
 
-use crate::types::{packed, prelude::*};
+use crate::types::{core::Header, packed, prelude::*};
 
 pub use ckb_mmr as lib;
 
@@ -17,18 +17,28 @@ pub type ClientRootMMR<S> = MMR<packed::HeaderDigest, MergeHeaderDigest, S>;
 /// MMR proof
 pub type MMRProof = MerkleProof<packed::HeaderDigest, MergeHeaderDigest>;
 
-impl<'r> packed::HeaderReader<'r> {
-    /// Get the MMR header digest from the header
+// Header with the cached root.
+pub struct HeaderWithCache {
+    pub inner: Header,
+    pub root: Hash256,
+}
+
+impl Header {
+    pub fn calc_cache(self) -> HeaderWithCache {
+        let root = self.tree_hash_root();
+        HeaderWithCache { inner: self, root }
+    }
+}
+
+impl HeaderWithCache {
     pub fn digest(&self) -> packed::HeaderDigest {
         packed::HeaderDigest::new_builder()
-            .children_hash(self.calc_header_root().pack())
+            .children_hash(self.root.pack())
             .build()
     }
+}
 
-    pub fn calc_header_root(&self) -> Hash256 {
-        self.unpack().tree_hash_root()
-    }
-
+impl<'r> packed::HeaderReader<'r> {
     #[cfg(feature = "std")]
     pub fn to_ssz_header(&self) -> BeaconBlockHeader {
         BeaconBlockHeader {
@@ -42,14 +52,6 @@ impl<'r> packed::HeaderReader<'r> {
 }
 
 impl packed::Header {
-    pub fn digest(&self) -> packed::HeaderDigest {
-        self.as_reader().digest()
-    }
-
-    pub fn calc_header_root(&self) -> Hash256 {
-        self.as_reader().calc_header_root()
-    }
-
     #[cfg(feature = "std")]
     pub fn from_ssz_header(header: &BeaconBlockHeader) -> Self {
         let slot: u64 = header.slot.into();

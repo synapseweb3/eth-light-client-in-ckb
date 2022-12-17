@@ -156,13 +156,15 @@ impl Pack<packed::Client> for core::Client {
     }
 }
 
-impl Pack<packed::HeadersUpdate> for core::HeadersUpdate {
-    fn pack(&self) -> packed::HeadersUpdate {
-        packed::HeadersUpdate::new_builder()
-            .headers(self.headers.pack())
-            .updates(self.updates.pack())
+impl Pack<packed::ProofUpdate> for core::ProofUpdate {
+    fn pack(&self) -> packed::ProofUpdate {
+        packed::ProofUpdate::new_builder()
+            .current_committee(self.current_committee.pack())
+            .next_committee(self.next_committee.pack())
             .new_headers_mmr_root(self.new_headers_mmr_root.pack())
+            .next_committee_ssz_proof(self.next_committee_ssz_proof.pack())
             .new_headers_mmr_proof(self.new_headers_mmr_proof.pack())
+            .updates(self.updates.pack())
             .build()
     }
 }

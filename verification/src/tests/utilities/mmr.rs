@@ -3,7 +3,10 @@ use std::fs::read_to_string;
 use eth2_types::BeaconBlockHeader;
 use tree_hash::Hash256;
 
-use crate::{tests::find_json_files, types::packed};
+use crate::{
+    tests::find_json_files,
+    types::{core, packed, prelude::*},
+};
 
 #[test]
 fn test_header_root() {
@@ -16,8 +19,8 @@ fn test_header_root() {
             serde_json::from_value(json_value["data"]["root"].clone()).unwrap();
         let ssz_header: BeaconBlockHeader =
             serde_json::from_value(json_value["data"]["header"]["message"].clone()).unwrap();
-        let packed_header = packed::Header::from_ssz_header(&ssz_header);
-        let actual_root = packed_header.calc_header_root();
+        let header: core::Header = packed::Header::from_ssz_header(&ssz_header).unpack();
+        let actual_root = header.calc_cache().root;
         assert_eq!(
             expected_root, actual_root,
             "failed to check the root of beacon block header#{}: expect {:#x} but actual {:#x}",

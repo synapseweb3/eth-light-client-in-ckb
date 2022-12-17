@@ -1,2 +1,2 @@
-mod headers_update;
-mod transaction;
+mod proof_update;
+mod transaction_verification;

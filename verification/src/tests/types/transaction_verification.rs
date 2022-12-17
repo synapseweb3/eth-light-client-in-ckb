@@ -54,8 +54,8 @@ fn test_transaction_verification() {
     let mmr = {
         let mut mmr = mmr::ClientRootMMR::new(0, &store);
         for header in &headers {
-            let header = packed::Header::from_ssz_header(header);
-            mmr.push(header.digest()).unwrap();
+            let header: core::Header = packed::Header::from_ssz_header(header).unpack();
+            mmr.push(header.calc_cache().digest()).unwrap();
         }
         mmr
     };

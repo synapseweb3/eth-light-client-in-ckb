@@ -178,17 +178,19 @@ impl<'r> Unpack<core::Client> for packed::ClientReader<'r> {
 }
 impl_conversion_for_entity_unpack!(Client);
 
-impl<'r> Unpack<core::HeadersUpdate> for packed::HeadersUpdateReader<'r> {
-    fn unpack(&self) -> core::HeadersUpdate {
-        core::HeadersUpdate {
-            headers: self.headers().unpack(),
-            updates: self.updates().unpack(),
+impl<'r> Unpack<core::ProofUpdate> for packed::ProofUpdateReader<'r> {
+    fn unpack(&self) -> core::ProofUpdate {
+        core::ProofUpdate {
+            current_committee: self.current_committee().unpack(),
+            next_committee: self.next_committee().unpack(),
             new_headers_mmr_root: self.new_headers_mmr_root().unpack(),
+            next_committee_ssz_proof: self.next_committee_ssz_proof().unpack(),
             new_headers_mmr_proof: self.new_headers_mmr_proof().unpack(),
+            updates: self.updates().unpack(),
         }
     }
 }
-impl_conversion_for_entity_unpack!(HeadersUpdate);
+impl_conversion_for_entity_unpack!(ProofUpdate);
 
 impl<'r> Unpack<core::TransactionProof> for packed::TransactionProofReader<'r> {
     fn unpack(&self) -> core::TransactionProof {

@@ -66,11 +66,13 @@ pub struct Client {
 }
 
 #[derive(Clone)]
-pub struct HeadersUpdate {
-    pub headers: HeaderVec,
-    pub updates: FinalityUpdateVec,
+pub struct ProofUpdate {
+    pub current_committee: SyncCommittee,
+    pub next_committee: SyncCommittee,
     pub new_headers_mmr_root: HeaderDigest,
+    pub next_committee_ssz_proof: SszProof,
     pub new_headers_mmr_proof: MmrProof,
+    pub updates: FinalityUpdateVec,
 }
 
 #[derive(Clone)]
