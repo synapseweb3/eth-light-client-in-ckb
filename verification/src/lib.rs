@@ -6,6 +6,7 @@ extern crate alloc;
 extern crate std;
 
 pub mod constants;
+pub mod error;
 pub mod types;
 
 mod utilities;

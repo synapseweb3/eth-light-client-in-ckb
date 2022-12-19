@@ -96,5 +96,5 @@ fn test_proof_update() {
         .build();
 
     let result = client.try_apply_packed_proof_update(packed_proof_update.as_reader());
-    assert!(result.is_ok());
+    assert!(result.is_ok(), "failed to update the proof in client");
 }

@@ -131,16 +131,18 @@ fn test_transaction_verification() {
 
             let result = client.verify_packed_transaction_proof(packed_proof.as_reader());
             assert!(
-                result,
+                result.is_ok(),
                 "failed to verify packed proof for block#{}.transaction#{}",
-                number, index
+                number,
+                index
             );
 
             let result = proof.verify_packed_payload(packed_payload.as_reader());
             assert!(
-                result,
+                result.is_ok(),
                 "failed to verify packed payload for block#{}.transaction#{}",
-                number, index
+                number,
+                index
             );
         }
     }

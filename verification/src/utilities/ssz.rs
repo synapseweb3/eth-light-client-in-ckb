@@ -27,9 +27,7 @@ pub fn length_hash(length: usize) -> Hash256 {
 }
 
 pub fn verify_merkle_proof(root: Hash256, leaf: Hash256, proof: &[Hash256], index: usize) -> bool {
-    if proof.len() != get_generalized_index_length(index) {
-        return false;
-    }
+    assert_eq!(proof.len(), get_generalized_index_length(index));
     calculate_merkle_root(leaf, proof, index) == root
 }
 
