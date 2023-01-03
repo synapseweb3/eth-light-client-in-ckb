@@ -25,6 +25,20 @@ impl core::Client {
     pub fn new_from_packed_proof_update(
         packed_proof_update: packed::ProofUpdateReader,
     ) -> Result<Self, ProofUpdateError> {
+        Self::new_or_update_with_packed_proof_update(None, packed_proof_update)
+    }
+
+    pub fn try_apply_packed_proof_update(
+        &self,
+        packed_proof_update: packed::ProofUpdateReader,
+    ) -> Result<Self, ProofUpdateError> {
+        Self::new_or_update_with_packed_proof_update(Some(self), packed_proof_update)
+    }
+
+    fn new_or_update_with_packed_proof_update(
+        prev_client_opt: Option<&Self>,
+        packed_proof_update: packed::ProofUpdateReader,
+    ) -> Result<Self, ProofUpdateError> {
         let updates = packed_proof_update.updates();
 
         // At least, there should has 1 new header.
@@ -39,12 +53,25 @@ impl core::Client {
         let mut prev_cached_header: mmr::HeaderWithCache;
         let mut curr_header: core::Header;
         let mut digests_with_positions = Vec::with_capacity(updates_len);
+        let minimal_slot;
+        let mut header_mmr_index;
 
         curr_header = updates_iter.next().unwrap().finalized_header().unpack();
 
-        let minimal_slot = curr_header.slot;
-
-        let mut header_mmr_index = 0;
+        if let Some(client) = prev_client_opt {
+            // Check Old Tip Header (with the first header)
+            if curr_header.slot != client.maximal_slot + 1 {
+                return Err(ProofUpdateError::FirstHeaderSlot);
+            }
+            if curr_header.parent_root != client.tip_header_root {
+                return Err(ProofUpdateError::FirstHeaderParentRoot);
+            }
+            minimal_slot = client.minimal_slot;
+            header_mmr_index = client.maximal_slot - client.minimal_slot + 1;
+        } else {
+            minimal_slot = curr_header.slot;
+            header_mmr_index = 0;
+        }
 
         // Check Updates
         {
@@ -84,7 +111,7 @@ impl core::Client {
             digests_with_positions.push((position, digest));
         }
 
-        // Check New MMR Root
+        // Check MMR Root
         {
             let proof: mmr::MMRProof = {
                 let max_index = maximal_slot - minimal_slot;
@@ -114,110 +141,6 @@ impl core::Client {
             maximal_slot,
             tip_header_root,
             headers_mmr_root,
-        };
-
-        Ok(new_client)
-    }
-
-    pub fn try_apply_packed_proof_update(
-        &self,
-        packed_proof_update: packed::ProofUpdateReader,
-    ) -> Result<Self, ProofUpdateError> {
-        let updates = packed_proof_update.updates();
-
-        // At least, there should has 1 new header.
-        if updates.is_empty() {
-            return Err(ProofUpdateError::EmptyUpdates);
-        }
-
-        let updates_len = updates.len();
-        let mut updates_iter = updates.iter();
-
-        let mut cached_finalized_headers = Vec::with_capacity(updates_len);
-        let mut prev_cached_header: mmr::HeaderWithCache;
-        let mut curr_header: core::Header;
-        let mut digests_with_positions = Vec::with_capacity(updates_len);
-        let mut header_mmr_index = self.maximal_slot - self.minimal_slot;
-
-        // Check Old Tip Header (the first header)
-        {
-            curr_header = updates_iter.next().unwrap().finalized_header().unpack();
-            if curr_header.slot != self.maximal_slot + 1 {
-                return Err(ProofUpdateError::FirstHeaderSlot);
-            }
-            if curr_header.parent_root != self.tip_header_root {
-                return Err(ProofUpdateError::FirstHeaderParentRoot);
-            }
-        }
-
-        // Check Updates
-        {
-            // Check if updates are continuous
-            for update in updates_iter {
-                header_mmr_index += 1;
-                prev_cached_header = curr_header.calc_cache();
-                curr_header = update.finalized_header().unpack();
-
-                if prev_cached_header.inner.slot + 1 != curr_header.slot {
-                    return Err(ProofUpdateError::UncontinuousSlot);
-                }
-
-                if prev_cached_header.root != curr_header.parent_root {
-                    return Err(ProofUpdateError::UnmatchedParentRoot);
-                }
-
-                // TODO verify more, such as BLS
-
-                let position = leaf_index_to_pos(header_mmr_index);
-                let digest = prev_cached_header.digest();
-
-                cached_finalized_headers.push(prev_cached_header);
-                digests_with_positions.push((position, digest));
-            }
-        }
-
-        let new_maximal_slot = curr_header.slot;
-
-        // Handle the last update
-        {
-            header_mmr_index += 1;
-            prev_cached_header = curr_header.calc_cache();
-            let position = leaf_index_to_pos(header_mmr_index);
-            let digest = prev_cached_header.digest();
-            cached_finalized_headers.push(prev_cached_header);
-            digests_with_positions.push((position, digest));
-        }
-
-        // Check New MMR Root
-        {
-            let proof: mmr::MMRProof = {
-                let max_index = new_maximal_slot - self.minimal_slot;
-                let mmr_size = leaf_index_to_mmr_size(max_index);
-                let proof = packed_proof_update
-                    .new_headers_mmr_proof()
-                    .iter()
-                    .map(|r| r.to_entity())
-                    .collect::<Vec<_>>();
-                mmr::MMRProof::new(mmr_size, proof)
-            };
-            let result = proof
-                .verify(
-                    packed_proof_update.new_headers_mmr_root().to_entity(),
-                    digests_with_positions,
-                )
-                .map_err(|_| ProofUpdateError::Other)?;
-            if !result {
-                return Err(ProofUpdateError::HeadersMmrProof);
-            }
-        }
-
-        let new_tip_header_root = cached_finalized_headers[updates_len - 1].root;
-        let new_headers_mmr_root = packed_proof_update.new_headers_mmr_root().unpack();
-        let new_client = Self {
-            minimal_slot: self.minimal_slot,
-            maximal_slot: new_maximal_slot,
-            tip_header_root: new_tip_header_root,
-            headers_mmr_root: new_headers_mmr_root,
         };
 
         Ok(new_client)
