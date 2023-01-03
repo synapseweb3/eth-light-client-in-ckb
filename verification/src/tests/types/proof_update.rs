@@ -11,6 +11,97 @@ use crate::{
 };
 
 #[test]
+fn test_new_client() {
+    let header_json_files = find_json_files("mainnet/beacon", "block-header-slot-");
+
+    let headers = header_json_files
+        .into_iter()
+        .map(|file| {
+            let json_str = read_to_string(file).unwrap();
+            let json_value: serde_json::Value = serde_json::from_str(&json_str).unwrap();
+            serde_json::from_value(json_value["data"]["header"]["message"].clone()).unwrap()
+        })
+        .collect::<Vec<BeaconBlockHeader>>();
+
+    let last_header = &headers[headers.len() - 1];
+    let minimal_slot: u64 = headers[0].slot.into();
+    let maximal_slot: u64 = last_header.slot.into();
+    let tip_header_root = last_header.tree_hash_root();
+
+    let (packed_headers, headers_mmr_root, headers_mmr_proof) = {
+        let store = mmr::lib::util::MemStore::default();
+        let mut mmr = mmr::ClientRootMMR::new(0, &store);
+        let mut positions = Vec::with_capacity(headers.len());
+        let mut packed_headers = Vec::with_capacity(headers.len());
+
+        for header in &headers {
+            let header_slot: u64 = header.slot.into();
+            let index = header_slot - minimal_slot;
+            let position = mmr::lib::leaf_index_to_pos(index);
+
+            let packed_header = packed::Header::from_ssz_header(header);
+            let header: core::Header = packed_header.unpack();
+
+            mmr.push(header.calc_cache().digest()).unwrap();
+            positions.push(position);
+            packed_headers.push(packed_header);
+        }
+
+        let headers_mmr_root = mmr.get_root().unwrap();
+        let headers_mmr_proof_items = mmr
+            .gen_proof(positions)
+            .unwrap()
+            .proof_items()
+            .iter()
+            .map(Clone::clone)
+            .collect::<Vec<_>>();
+        let headers_mmr_proof = packed::MmrProof::new_builder()
+            .set(headers_mmr_proof_items)
+            .build();
+
+        (packed_headers, headers_mmr_root, headers_mmr_proof)
+    };
+
+    let expected_packed_client = core::Client {
+        minimal_slot,
+        maximal_slot,
+        tip_header_root,
+        headers_mmr_root: headers_mmr_root.unpack(),
+    }
+    .pack();
+
+    let updates_items = packed_headers
+        .into_iter()
+        .map(|header| {
+            packed::FinalityUpdate::new_builder()
+                .finalized_header(header)
+                .build()
+        })
+        .collect::<Vec<_>>();
+    let updates = packed::FinalityUpdateVec::new_builder()
+        .set(updates_items)
+        .build();
+
+    let packed_proof_update = packed::ProofUpdate::new_builder()
+        .new_headers_mmr_root(headers_mmr_root)
+        .new_headers_mmr_proof(headers_mmr_proof)
+        .updates(updates)
+        .build();
+
+    let result = core::Client::new_from_packed_proof_update(packed_proof_update.as_reader());
+    assert!(result.is_ok(), "failed to create client from proof update");
+
+    if let Ok(actual_client) = result {
+        let actual_packed_client = actual_client.pack();
+
+        assert_eq!(
+            actual_packed_client.as_slice(),
+            expected_packed_client.as_slice()
+        );
+    }
+}
+
+#[test]
 fn test_proof_update() {
     let header_json_files = find_json_files("mainnet/beacon", "block-header-slot-");
 

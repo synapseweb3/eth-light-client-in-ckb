@@ -22,22 +22,101 @@ use crate::{
 };
 
 impl core::Client {
-    pub fn verify_packed_transaction_proof(
-        &self,
-        tx_proof: packed::TransactionProofReader,
-    ) -> Result<(), TxVerificationError> {
-        let header_slot = tx_proof.header().slot().unpack();
-        if self.minimal_slot > header_slot || self.maximal_slot < header_slot {
-            return Err(TxVerificationError::Unsynchronized);
+    pub fn new_from_packed_proof_update(
+        packed_proof_update: packed::ProofUpdateReader,
+    ) -> Result<Self, ProofUpdateError> {
+        let updates = packed_proof_update.updates();
+
+        // At least, there should has 1 new header.
+        if updates.is_empty() {
+            return Err(ProofUpdateError::EmptyUpdates);
         }
-        let result = self
-            .verify_single_header(tx_proof.header(), tx_proof.header_mmr_proof())
-            .map_err(|_| TxVerificationError::Other)?;
-        if !result {
-            Err(TxVerificationError::HeaderMmrProof)
-        } else {
-            Ok(())
+
+        let updates_len = updates.len();
+        let mut updates_iter = updates.iter();
+
+        let mut cached_finalized_headers = Vec::with_capacity(updates_len);
+        let mut prev_cached_header: mmr::HeaderWithCache;
+        let mut curr_header: core::Header;
+        let mut digests_with_positions = Vec::with_capacity(updates_len);
+
+        curr_header = updates_iter.next().unwrap().finalized_header().unpack();
+
+        let minimal_slot = curr_header.slot;
+
+        let mut header_mmr_index = 0;
+
+        // Check Updates
+        {
+            // Check if updates are continuous
+            for update in updates_iter {
+                prev_cached_header = curr_header.calc_cache();
+                curr_header = update.finalized_header().unpack();
+
+                if prev_cached_header.inner.slot + 1 != curr_header.slot {
+                    return Err(ProofUpdateError::UncontinuousSlot);
+                }
+
+                if prev_cached_header.root != curr_header.parent_root {
+                    return Err(ProofUpdateError::UnmatchedParentRoot);
+                }
+
+                // TODO verify more, such as BLS
+
+                let position = leaf_index_to_pos(header_mmr_index);
+                let digest = prev_cached_header.digest();
+
+                cached_finalized_headers.push(prev_cached_header);
+                digests_with_positions.push((position, digest));
+
+                header_mmr_index += 1;
+            }
         }
+
+        let maximal_slot = curr_header.slot;
+
+        // Handle the last update
+        {
+            prev_cached_header = curr_header.calc_cache();
+            let position = leaf_index_to_pos(header_mmr_index);
+            let digest = prev_cached_header.digest();
+            cached_finalized_headers.push(prev_cached_header);
+            digests_with_positions.push((position, digest));
+        }
+
+        // Check New MMR Root
+        {
+            let proof: mmr::MMRProof = {
+                let max_index = maximal_slot - minimal_slot;
+                let mmr_size = leaf_index_to_mmr_size(max_index);
+                let proof = packed_proof_update
+                    .new_headers_mmr_proof()
+                    .iter()
+                    .map(|r| r.to_entity())
+                    .collect::<Vec<_>>();
+                mmr::MMRProof::new(mmr_size, proof)
+            };
+            let result = proof
+                .verify(
+                    packed_proof_update.new_headers_mmr_root().to_entity(),
+                    digests_with_positions,
+                )
+                .map_err(|_| ProofUpdateError::Other)?;
+            if !result {
+                return Err(ProofUpdateError::HeadersMmrProof);
+            }
+        }
+
+        let tip_header_root = cached_finalized_headers[updates_len - 1].root;
+        let headers_mmr_root = packed_proof_update.new_headers_mmr_root().unpack();
+        let new_client = Self {
+            minimal_slot,
+            maximal_slot,
+            tip_header_root,
+            headers_mmr_root,
+        };
+
+        Ok(new_client)
     }
 
     pub fn try_apply_packed_proof_update(
@@ -142,6 +221,24 @@ impl core::Client {
         };
 
         Ok(new_client)
+    }
+
+    pub fn verify_packed_transaction_proof(
+        &self,
+        tx_proof: packed::TransactionProofReader,
+    ) -> Result<(), TxVerificationError> {
+        let header_slot = tx_proof.header().slot().unpack();
+        if self.minimal_slot > header_slot || self.maximal_slot < header_slot {
+            return Err(TxVerificationError::Unsynchronized);
+        }
+        let result = self
+            .verify_single_header(tx_proof.header(), tx_proof.header_mmr_proof())
+            .map_err(|_| TxVerificationError::Other)?;
+        if !result {
+            Err(TxVerificationError::HeaderMmrProof)
+        } else {
+            Ok(())
+        }
     }
 
     fn verify_single_header(
