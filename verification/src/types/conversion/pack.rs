@@ -114,8 +114,6 @@ impl Pack<packed::FinalityUpdate> for core::FinalityUpdate {
             .attested_header(self.attested_header.pack())
             .finalized_header(self.finalized_header.pack())
             .finality_branch(self.finality_branch.pack())
-            .sync_aggregate(self.sync_aggregate.pack())
-            .signature_slot(self.signature_slot.pack())
             .build()
     }
 }
@@ -159,8 +157,6 @@ impl Pack<packed::Client> for core::Client {
 impl Pack<packed::ProofUpdate> for core::ProofUpdate {
     fn pack(&self) -> packed::ProofUpdate {
         packed::ProofUpdate::new_builder()
-            .current_committee(self.current_committee.pack())
-            .next_committee(self.next_committee.pack())
             .new_headers_mmr_root(self.new_headers_mmr_root.pack())
             .next_committee_ssz_proof(self.next_committee_ssz_proof.pack())
             .new_headers_mmr_proof(self.new_headers_mmr_proof.pack())

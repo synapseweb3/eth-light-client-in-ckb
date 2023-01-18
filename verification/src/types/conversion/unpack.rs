@@ -134,8 +134,6 @@ impl<'r> Unpack<core::FinalityUpdate> for packed::FinalityUpdateReader<'r> {
             attested_header: self.attested_header().unpack(),
             finalized_header: self.finalized_header().unpack(),
             finality_branch: self.finality_branch().unpack(),
-            sync_aggregate: self.sync_aggregate().unpack(),
-            signature_slot: self.signature_slot().unpack(),
         }
     }
 }
@@ -181,8 +179,6 @@ impl_conversion_for_entity_unpack!(Client);
 impl<'r> Unpack<core::ProofUpdate> for packed::ProofUpdateReader<'r> {
     fn unpack(&self) -> core::ProofUpdate {
         core::ProofUpdate {
-            current_committee: self.current_committee().unpack(),
-            next_committee: self.next_committee().unpack(),
             new_headers_mmr_root: self.new_headers_mmr_root().unpack(),
             next_committee_ssz_proof: self.next_committee_ssz_proof().unpack(),
             new_headers_mmr_proof: self.new_headers_mmr_proof().unpack(),

@@ -43,8 +43,6 @@ pub struct FinalityUpdate {
     pub attested_header: Header,
     pub finalized_header: Header,
     pub finality_branch: SszProof,
-    pub sync_aggregate: SyncAggregate,
-    pub signature_slot: Uint64,
 }
 
 #[derive(Clone)]
@@ -67,8 +65,6 @@ pub struct Client {
 
 #[derive(Clone)]
 pub struct ProofUpdate {
-    pub current_committee: SyncCommittee,
-    pub next_committee: SyncCommittee,
     pub new_headers_mmr_root: HeaderDigest,
     pub next_committee_ssz_proof: SszProof,
     pub new_headers_mmr_proof: MmrProof,

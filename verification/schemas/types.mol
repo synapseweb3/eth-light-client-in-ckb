@@ -33,8 +33,6 @@ struct SyncAggregate {
 
 table FinalityUpdate {
     attested_header: Header,
-    sync_aggregate: SyncAggregate,
-    signature_slot: Uint64,
     finalized_header: Header,
     finality_branch: SszProof,
 }
@@ -56,8 +54,6 @@ struct Client {
 }
 
 table ProofUpdate {
-    current_committee: SyncCommittee,
-    next_committee: SyncCommittee,
     new_headers_mmr_root: HeaderDigest,
     next_committee_ssz_proof: SszProof,
     new_headers_mmr_proof: MmrProof,
