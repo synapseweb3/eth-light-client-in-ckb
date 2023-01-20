@@ -5,10 +5,4 @@
 /data/*
 !/data/mainnet
 /data/mainnet/*
-!/data/mainnet/beacon
-/data/mainnet/beacon/*
-!/data/mainnet/beacon/block-header-slot-*.json
-!/data/mainnet/beacon/block-slot-*.json
-!/data/mainnet/execution
-/data/mainnet/execution/*
-!/data/mainnet/execution/block-receipts-number-*.json
+!/data/mainnet/case-*

@@ -28,6 +28,13 @@ impl Header {
         let root = self.tree_hash_root();
         HeaderWithCache { inner: self, root }
     }
+
+    pub fn is_empty(&self) -> bool {
+        self.proposer_index == 0
+            && self.parent_root.is_zero()
+            && self.state_root.is_zero()
+            && self.body_root.is_zero()
+    }
 }
 
 impl HeaderWithCache {

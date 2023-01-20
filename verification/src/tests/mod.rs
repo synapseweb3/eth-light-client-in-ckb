@@ -6,13 +6,8 @@ use walkdir::WalkDir;
 mod types;
 mod utilities;
 
-// Since some checks are too slow, we only check few examples.
-// TODO Randomize the choices.
-pub(crate) const CHECKS_COUNT: usize = 8;
-
 pub(crate) mod test_data {
     pub(crate) const ROOT: &str = "../tests/data";
-    pub(crate) const COUNT: usize = 64;
 }
 
 pub(crate) mod check_entry {
@@ -47,6 +42,5 @@ pub(crate) fn find_json_files(in_dir: &str, filename_prefix: &str) -> Vec<PathBu
         .filter(check_entry::if_starts_with(filename_prefix))
         .map(|entry| entry.into_path())
         .collect::<Vec<_>>();
-    assert_eq!(json_files.len(), test_data::COUNT);
     json_files
 }

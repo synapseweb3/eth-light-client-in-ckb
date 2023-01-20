@@ -10,7 +10,7 @@ use alloc::{vec, vec::Vec};
 use ckb_mmr::{leaf_index_to_mmr_size, leaf_index_to_pos, Error as MMRError};
 use rlp::encode;
 use ssz_types::{typenum, VariableList};
-use tree_hash::TreeHash as _;
+use tree_hash::{Hash256, TreeHash as _};
 
 pub use generated::packed;
 
@@ -50,42 +50,66 @@ impl core::Client {
         let mut updates_iter = updates.iter();
 
         let mut cached_finalized_headers = Vec::with_capacity(updates_len);
-        let mut prev_cached_header: mmr::HeaderWithCache;
-        let mut curr_header: core::Header;
         let mut digests_with_positions = Vec::with_capacity(updates_len);
         let minimal_slot;
         let mut header_mmr_index;
 
-        curr_header = updates_iter.next().unwrap().finalized_header().unpack();
+        let mut curr_cached_header = {
+            let header: core::Header = updates_iter.next().unwrap().finalized_header().unpack();
+            header.calc_cache()
+        };
+        let mut prev_cached_header: mmr::HeaderWithCache;
+        let mut prev_cached_header_root: Hash256;
 
-        if let Some(client) = prev_client_opt {
-            // Check Old Tip Header (with the first header)
-            if curr_header.slot != client.maximal_slot + 1 {
-                return Err(ProofUpdateError::FirstHeaderSlot);
+        {
+            if let Some(client) = prev_client_opt {
+                // Check Old Tip Header (with the first header)
+                if curr_cached_header.inner.slot != client.maximal_slot + 1 {
+                    return Err(ProofUpdateError::FirstHeaderSlot);
+                }
+
+                prev_cached_header_root = if curr_cached_header.inner.is_empty() {
+                    client.tip_header_root
+                } else {
+                    if curr_cached_header.inner.parent_root != client.tip_header_root {
+                        return Err(ProofUpdateError::FirstHeaderParentRoot);
+                    }
+                    curr_cached_header.root
+                };
+                minimal_slot = client.minimal_slot;
+                header_mmr_index = client.maximal_slot - client.minimal_slot + 1;
+            } else {
+                prev_cached_header_root = if curr_cached_header.inner.is_empty() {
+                    Hash256::zero()
+                } else {
+                    curr_cached_header.root
+                };
+                minimal_slot = curr_cached_header.inner.slot;
+                header_mmr_index = 0;
             }
-            if curr_header.parent_root != client.tip_header_root {
-                return Err(ProofUpdateError::FirstHeaderParentRoot);
-            }
-            minimal_slot = client.minimal_slot;
-            header_mmr_index = client.maximal_slot - client.minimal_slot + 1;
-        } else {
-            minimal_slot = curr_header.slot;
-            header_mmr_index = 0;
+            prev_cached_header = curr_cached_header;
         }
 
         // Check Updates
         {
             // Check if updates are continuous
             for update in updates_iter {
-                prev_cached_header = curr_header.calc_cache();
-                curr_header = update.finalized_header().unpack();
+                curr_cached_header = {
+                    let header: core::Header = update.finalized_header().unpack();
+                    header.calc_cache()
+                };
 
-                if prev_cached_header.inner.slot + 1 != curr_header.slot {
+                if prev_cached_header.inner.slot + 1 != curr_cached_header.inner.slot {
                     return Err(ProofUpdateError::UncontinuousSlot);
                 }
 
-                if prev_cached_header.root != curr_header.parent_root {
-                    return Err(ProofUpdateError::UnmatchedParentRoot);
+                if !curr_cached_header.inner.is_empty() {
+                    if !prev_cached_header_root.is_zero()
+                        && prev_cached_header_root != curr_cached_header.inner.parent_root
+                    {
+                        return Err(ProofUpdateError::UnmatchedParentRoot);
+                    }
+                    prev_cached_header_root = curr_cached_header.root;
                 }
 
                 // TODO verify more, such as BLS
@@ -97,14 +121,14 @@ impl core::Client {
                 digests_with_positions.push((position, digest));
 
                 header_mmr_index += 1;
+                prev_cached_header = curr_cached_header;
             }
         }
 
-        let maximal_slot = curr_header.slot;
+        let maximal_slot = prev_cached_header.inner.slot;
 
         // Handle the last update
         {
-            prev_cached_header = curr_header.calc_cache();
             let position = leaf_index_to_pos(header_mmr_index);
             let digest = prev_cached_header.digest();
             cached_finalized_headers.push(prev_cached_header);

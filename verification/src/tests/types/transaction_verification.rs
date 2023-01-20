@@ -1,4 +1,4 @@
-use alloc::{vec, vec::Vec};
+use alloc::{format, vec, vec::Vec};
 use std::fs::read_to_string;
 
 use eth2_types::{BeaconBlock, BeaconBlockHeader, MainnetEthSpec};
@@ -6,43 +6,60 @@ use eth_light_client_in_ckb_prover::{CachedBeaconBlock, Receipts};
 use ethers_core::types::TransactionReceipt;
 use tree_hash::TreeHash as _;
 
+use super::load_beacon_block_header_from_json_or_create_default;
 use crate::{
     mmr,
-    tests::{find_json_files, CHECKS_COUNT},
+    tests::find_json_files,
     types::{core, packed, prelude::*},
 };
 
 #[test]
-fn test_transaction_verification() {
-    let header_json_files = find_json_files("mainnet/beacon", "block-header-slot-");
-    let block_json_files = find_json_files("mainnet/beacon", "block-slot-");
-    let receipts_json_files = find_json_files("mainnet/execution", "block-receipts-number-");
+fn test_transaction_verification_case_1() {
+    test_transaction_verification(1);
+}
+
+#[test]
+fn test_transaction_verification_case_2() {
+    test_transaction_verification(2);
+}
+
+fn test_transaction_verification(case_id: usize) {
+    let beacon_dir = format!("mainnet/case-{}/beacon", case_id);
+    let execution_dir = format!("mainnet/case-{}/execution", case_id);
+
+    let header_json_files = find_json_files(&beacon_dir, "block-header-slot-");
+    let block_json_files = find_json_files(&beacon_dir, "block-slot-");
+    let receipts_json_files = find_json_files(&execution_dir, "block-receipts-number-");
 
     let headers = header_json_files
         .into_iter()
-        .take(CHECKS_COUNT)
-        .map(|file| {
-            let json_str = read_to_string(file).unwrap();
-            let json_value: serde_json::Value = serde_json::from_str(&json_str).unwrap();
-            serde_json::from_value(json_value["data"]["header"]["message"].clone()).unwrap()
-        })
+        .map(load_beacon_block_header_from_json_or_create_default)
         .collect::<Vec<BeaconBlockHeader>>();
 
     let blocks = block_json_files
         .into_iter()
-        .take(CHECKS_COUNT)
-        .map(|file| {
+        .filter_map(|file| {
             let json_str = read_to_string(file).unwrap();
             let json_value: serde_json::Value = serde_json::from_str(&json_str).unwrap();
-            let block: BeaconBlock<MainnetEthSpec> =
-                serde_json::from_value(json_value["data"]["message"].clone()).unwrap();
-            block.into()
+            if json_value.get("code").is_some() {
+                None
+            } else {
+                let block: BeaconBlock<MainnetEthSpec> =
+                    serde_json::from_value(json_value["data"]["message"].clone()).unwrap();
+                Some(block.into())
+            }
         })
         .collect::<Vec<CachedBeaconBlock<MainnetEthSpec>>>();
 
+    let block_count = {
+        let first_block = &blocks[0];
+        let last_block = &blocks[blocks.len() - 1];
+        last_block.number() - first_block.number() + 1
+    };
+
     let receipts_list = receipts_json_files
         .into_iter()
-        .take(CHECKS_COUNT)
+        .take(block_count as usize)
         .map(|file| {
             let json_str = read_to_string(file).unwrap();
             let receipts: Vec<TransactionReceipt> = serde_json::from_str(&json_str).unwrap();
@@ -70,6 +87,10 @@ fn test_transaction_verification() {
 
     for ((header, block), receipts) in headers
         .into_iter()
+        .filter(|ref header| {
+            let header: core::Header = packed::Header::from_ssz_header(header).unpack();
+            !header.is_empty()
+        })
         .zip(blocks.into_iter())
         .zip(receipts_list.into_iter())
     {

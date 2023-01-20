@@ -1,26 +1,43 @@
-use alloc::vec::Vec;
-use std::fs::read_to_string;
+use alloc::{format, vec::Vec};
 
 use eth2_types::BeaconBlockHeader;
 use tree_hash::TreeHash as _;
 
+use super::load_beacon_block_header_from_json_or_create_default;
 use crate::{
     mmr,
-    tests::{find_json_files, test_data},
+    tests::find_json_files,
     types::{core, packed, prelude::*},
 };
 
 #[test]
-fn test_new_client() {
-    let header_json_files = find_json_files("mainnet/beacon", "block-header-slot-");
+fn test_new_client_case_1() {
+    test_new_client(1);
+}
+
+#[test]
+fn test_new_client_case_2() {
+    test_new_client(2);
+}
+
+#[test]
+fn test_proof_update_case_1() {
+    test_proof_update(1);
+}
+
+#[test]
+fn test_proof_update_case_2() {
+    test_proof_update(2);
+}
+
+fn test_new_client(case_id: usize) {
+    let case_dir = format!("mainnet/case-{}/beacon", case_id);
+
+    let header_json_files = find_json_files(&case_dir, "block-header-slot-");
 
     let headers = header_json_files
         .into_iter()
-        .map(|file| {
-            let json_str = read_to_string(file).unwrap();
-            let json_value: serde_json::Value = serde_json::from_str(&json_str).unwrap();
-            serde_json::from_value(json_value["data"]["header"]["message"].clone()).unwrap()
-        })
+        .map(load_beacon_block_header_from_json_or_create_default)
         .collect::<Vec<BeaconBlockHeader>>();
 
     let last_header = &headers[headers.len() - 1];
@@ -101,19 +118,16 @@ fn test_new_client() {
     }
 }
 
-#[test]
-fn test_proof_update() {
-    let header_json_files = find_json_files("mainnet/beacon", "block-header-slot-");
+fn test_proof_update(case_id: usize) {
+    let case_dir = format!("mainnet/case-{}/beacon", case_id);
 
-    let split_at = test_data::COUNT / 2;
+    let header_json_files = find_json_files(&case_dir, "block-header-slot-");
+
+    let split_at = header_json_files.len() / 2;
     let (headers_part1, headers_part2) = {
         let mut headers = header_json_files
             .into_iter()
-            .map(|file| {
-                let json_str = read_to_string(file).unwrap();
-                let json_value: serde_json::Value = serde_json::from_str(&json_str).unwrap();
-                serde_json::from_value(json_value["data"]["header"]["message"].clone()).unwrap()
-            })
+            .map(load_beacon_block_header_from_json_or_create_default)
             .collect::<Vec<BeaconBlockHeader>>();
         let headers_part2 = headers.split_off(split_at);
         (headers, headers_part2)
