@@ -1,5 +1,6 @@
+#[repr(i8)]
 pub enum ProofUpdateError {
-    EmptyUpdates,
+    EmptyUpdates = 1,
     FirstHeaderSlot,
     FirstHeaderParentRoot,
     UncontinuousSlot,
@@ -8,8 +9,9 @@ pub enum ProofUpdateError {
     Other,
 }
 
+#[repr(i8)]
 pub enum TxVerificationError {
-    TransactionSszProof,
+    TransactionSszProof = 1,
     ReceiptMptProof,
     ReceiptsRootSszProof,
     Unsynchronized,
