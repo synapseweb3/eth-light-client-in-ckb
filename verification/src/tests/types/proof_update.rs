@@ -11,26 +11,65 @@ use crate::{
 };
 
 #[test]
-fn test_new_client_case_1() {
-    test_new_client(1);
+fn new_client_case_1() {
+    new_client(1);
 }
 
 #[test]
-fn test_new_client_case_2() {
-    test_new_client(2);
+fn new_client_case_2() {
+    new_client(2);
 }
 
 #[test]
-fn test_proof_update_case_1() {
-    test_proof_update(1);
+fn proof_update_case_1_no_empty() {
+    let param = ProofUpdateParameter {
+        case_id: 1,
+        ..Default::default()
+    };
+    proof_update(param);
 }
 
 #[test]
-fn test_proof_update_case_2() {
-    test_proof_update(2);
+#[should_panic(expected = "failed to update the proof in client")]
+fn proof_update_case_2_empty_client() {
+    let param = ProofUpdateParameter {
+        case_id: 2,
+        split_at_opt: Some(48),
+        ..Default::default()
+    };
+    proof_update(param);
 }
 
-fn test_new_client(case_id: usize) {
+#[test]
+fn proof_update_case_2_empty_at_the_start_of_updates() {
+    let param = ProofUpdateParameter {
+        case_id: 2,
+        split_at_opt: Some(47),
+        ..Default::default()
+    };
+    proof_update(param);
+}
+
+#[test]
+fn proof_update_case_2_empty_at_the_middle_of_updates() {
+    let param = ProofUpdateParameter {
+        case_id: 2,
+        ..Default::default()
+    };
+    proof_update(param);
+}
+
+#[test]
+fn proof_update_case_2_empty_at_the_end_of_updates() {
+    let param = ProofUpdateParameter {
+        case_id: 2,
+        total_count_opt: Some(48),
+        ..Default::default()
+    };
+    proof_update(param);
+}
+
+fn new_client(case_id: usize) {
     let case_dir = format!("mainnet/case-{}/beacon", case_id);
 
     let header_json_files = find_json_files(&case_dir, "block-header-slot-");
@@ -118,13 +157,24 @@ fn test_new_client(case_id: usize) {
     }
 }
 
-fn test_proof_update(case_id: usize) {
-    let case_dir = format!("mainnet/case-{}/beacon", case_id);
+#[derive(Default)]
+struct ProofUpdateParameter {
+    case_id: usize,
+    total_count_opt: Option<usize>,
+    split_at_opt: Option<usize>,
+}
 
-    let header_json_files = find_json_files(&case_dir, "block-header-slot-");
+fn proof_update(param: ProofUpdateParameter) {
+    let case_dir = format!("mainnet/case-{}/beacon", param.case_id);
 
-    let split_at = header_json_files.len() / 2;
     let (headers_part1, headers_part2) = {
+        let mut header_json_files = find_json_files(&case_dir, "block-header-slot-");
+        if let Some(total_count) = param.total_count_opt {
+            header_json_files.truncate(total_count);
+        }
+        let split_at = param
+            .split_at_opt
+            .unwrap_or_else(|| header_json_files.len() / 2);
         let mut headers = header_json_files
             .into_iter()
             .map(load_beacon_block_header_from_json_or_create_default)
