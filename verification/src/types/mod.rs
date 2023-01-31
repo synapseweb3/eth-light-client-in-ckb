@@ -69,9 +69,9 @@ impl core::Client {
                 }
 
                 prev_cached_header_root = if curr_cached_header.inner.is_empty() {
-                    client.tip_header_root
+                    client.tip_valid_header_root
                 } else {
-                    if curr_cached_header.inner.parent_root != client.tip_header_root {
+                    if curr_cached_header.inner.parent_root != client.tip_valid_header_root {
                         return Err(ProofUpdateError::FirstHeaderParentRoot);
                     }
                     curr_cached_header.root
@@ -80,7 +80,7 @@ impl core::Client {
                 header_mmr_index = client.maximal_slot - client.minimal_slot + 1;
             } else {
                 prev_cached_header_root = if curr_cached_header.inner.is_empty() {
-                    Hash256::zero()
+                    return Err(ProofUpdateError::FirstHeaderForCreate);
                 } else {
                     curr_cached_header.root
                 };
@@ -158,12 +158,11 @@ impl core::Client {
             }
         }
 
-        let tip_header_root = cached_finalized_headers[updates_len - 1].root;
         let headers_mmr_root = packed_proof_update.new_headers_mmr_root().unpack();
         let new_client = Self {
             minimal_slot,
             maximal_slot,
-            tip_header_root,
+            tip_valid_header_root: prev_cached_header_root,
             headers_mmr_root,
         };
 

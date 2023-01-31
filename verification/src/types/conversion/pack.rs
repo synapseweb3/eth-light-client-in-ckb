@@ -148,7 +148,7 @@ impl Pack<packed::Client> for core::Client {
         packed::Client::new_builder()
             .minimal_slot(self.minimal_slot.pack())
             .maximal_slot(self.maximal_slot.pack())
-            .tip_header_root(self.tip_header_root.pack())
+            .tip_valid_header_root(self.tip_valid_header_root.pack())
             .headers_mmr_root(self.headers_mmr_root.pack())
             .build()
     }

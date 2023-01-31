@@ -81,7 +81,7 @@ fn test_transaction_verification(case_id: usize) {
     let client = core::Client {
         minimal_slot: headers[0].slot.into(),
         maximal_slot: last_header.slot.into(),
-        tip_header_root: last_header.tree_hash_root(),
+        tip_valid_header_root: last_header.tree_hash_root(),
         headers_mmr_root: mmr.get_root().unwrap().unpack(),
     };
 

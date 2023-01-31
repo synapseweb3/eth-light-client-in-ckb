@@ -49,7 +49,7 @@ vector FinalityUpdateVec <FinalityUpdate>;
 struct Client {
     minimal_slot: Uint64,
     maximal_slot: Uint64,
-    tip_header_root: Hash,
+    tip_valid_header_root: Hash,
     headers_mmr_root: HeaderDigest,
 }
 

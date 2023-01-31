@@ -59,7 +59,7 @@ pub type FinalityUpdateVec = Vec<FinalityUpdate>;
 pub struct Client {
     pub minimal_slot: Uint64,
     pub maximal_slot: Uint64,
-    pub tip_header_root: Hash,
+    pub tip_valid_header_root: Hash,
     pub headers_mmr_root: HeaderDigest,
 }
 

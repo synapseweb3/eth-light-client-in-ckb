@@ -15550,7 +15550,12 @@ impl ::core::fmt::Display for Client {
         write!(f, "{} {{ ", Self::NAME)?;
         write!(f, "{}: {}", "minimal_slot", self.minimal_slot())?;
         write!(f, ", {}: {}", "maximal_slot", self.maximal_slot())?;
-        write!(f, ", {}: {}", "tip_header_root", self.tip_header_root())?;
+        write!(
+            f,
+            ", {}: {}",
+            "tip_valid_header_root",
+            self.tip_valid_header_root()
+        )?;
         write!(f, ", {}: {}", "headers_mmr_root", self.headers_mmr_root())?;
         write!(f, " }}")
     }
@@ -15575,7 +15580,7 @@ impl Client {
     pub fn maximal_slot(&self) -> Uint64 {
         Uint64::new_unchecked(self.0.slice(8..16))
     }
-    pub fn tip_header_root(&self) -> Hash {
+    pub fn tip_valid_header_root(&self) -> Hash {
         Hash::new_unchecked(self.0.slice(16..48))
     }
     pub fn headers_mmr_root(&self) -> HeaderDigest {
@@ -15610,7 +15615,7 @@ impl molecule::prelude::Entity for Client {
         Self::new_builder()
             .minimal_slot(self.minimal_slot())
             .maximal_slot(self.maximal_slot())
-            .tip_header_root(self.tip_header_root())
+            .tip_valid_header_root(self.tip_valid_header_root())
             .headers_mmr_root(self.headers_mmr_root())
     }
 }
@@ -15635,7 +15640,12 @@ impl<'r> ::core::fmt::Display for ClientReader<'r> {
         write!(f, "{} {{ ", Self::NAME)?;
         write!(f, "{}: {}", "minimal_slot", self.minimal_slot())?;
         write!(f, ", {}: {}", "maximal_slot", self.maximal_slot())?;
-        write!(f, ", {}: {}", "tip_header_root", self.tip_header_root())?;
+        write!(
+            f,
+            ", {}: {}",
+            "tip_valid_header_root",
+            self.tip_valid_header_root()
+        )?;
         write!(f, ", {}: {}", "headers_mmr_root", self.headers_mmr_root())?;
         write!(f, " }}")
     }
@@ -15650,7 +15660,7 @@ impl<'r> ClientReader<'r> {
     pub fn maximal_slot(&self) -> Uint64Reader<'r> {
         Uint64Reader::new_unchecked(&self.as_slice()[8..16])
     }
-    pub fn tip_header_root(&self) -> HashReader<'r> {
+    pub fn tip_valid_header_root(&self) -> HashReader<'r> {
         HashReader::new_unchecked(&self.as_slice()[16..48])
     }
     pub fn headers_mmr_root(&self) -> HeaderDigestReader<'r> {
@@ -15682,7 +15692,7 @@ impl<'r> molecule::prelude::Reader<'r> for ClientReader<'r> {
 pub struct ClientBuilder {
     pub(crate) minimal_slot: Uint64,
     pub(crate) maximal_slot: Uint64,
-    pub(crate) tip_header_root: Hash,
+    pub(crate) tip_valid_header_root: Hash,
     pub(crate) headers_mmr_root: HeaderDigest,
 }
 impl ClientBuilder {
@@ -15697,8 +15707,8 @@ impl ClientBuilder {
         self.maximal_slot = v;
         self
     }
-    pub fn tip_header_root(mut self, v: Hash) -> Self {
-        self.tip_header_root = v;
+    pub fn tip_valid_header_root(mut self, v: Hash) -> Self {
+        self.tip_valid_header_root = v;
         self
     }
     pub fn headers_mmr_root(mut self, v: HeaderDigest) -> Self {
@@ -15715,7 +15725,7 @@ impl molecule::prelude::Builder for ClientBuilder {
     fn write<W: molecule::io::Write>(&self, writer: &mut W) -> molecule::io::Result<()> {
         writer.write_all(self.minimal_slot.as_slice())?;
         writer.write_all(self.maximal_slot.as_slice())?;
-        writer.write_all(self.tip_header_root.as_slice())?;
+        writer.write_all(self.tip_valid_header_root.as_slice())?;
         writer.write_all(self.headers_mmr_root.as_slice())?;
         Ok(())
     }

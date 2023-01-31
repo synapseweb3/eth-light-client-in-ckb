@@ -169,7 +169,7 @@ impl<'r> Unpack<core::Client> for packed::ClientReader<'r> {
         core::Client {
             minimal_slot: self.minimal_slot().unpack(),
             maximal_slot: self.maximal_slot().unpack(),
-            tip_header_root: self.tip_header_root().unpack(),
+            tip_valid_header_root: self.tip_valid_header_root().unpack(),
             headers_mmr_root: self.headers_mmr_root().unpack(),
         }
     }
