@@ -1,3 +1,5 @@
+#[cfg(feature = "std")]
+use alloc::fmt;
 use core::cmp::PartialEq;
 
 use ckb_mmr::{Merge, MerkleProof, Result as MMRResult, MMR};
@@ -23,6 +25,35 @@ pub struct HeaderWithCache {
     pub root: Hash256,
 }
 
+#[cfg(feature = "std")]
+impl fmt::Display for HeaderWithCache {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        if self.is_empty() {
+            write!(
+                f,
+                "{{ slot: {}, root: {:#x}, empty: true }}",
+                self.inner.slot, self.root
+            )
+        } else if f.alternate() {
+            write!(
+                f,
+                "{{ slot: {}, root: {:#x}, parent: {:#x}, state: {:#x}, body: {:#x} }}",
+                self.inner.slot,
+                self.root,
+                self.inner.parent_root,
+                self.inner.state_root,
+                self.inner.body_root
+            )
+        } else {
+            write!(
+                f,
+                "{{ slot: {}, root: {:#x}, parent: {:#x} }}",
+                self.inner.slot, self.root, self.inner.parent_root
+            )
+        }
+    }
+}
+
 impl Header {
     pub fn calc_cache(self) -> HeaderWithCache {
         let root = self.tree_hash_root();
@@ -42,6 +73,10 @@ impl HeaderWithCache {
         packed::HeaderDigest::new_builder()
             .children_hash(self.root.pack())
             .build()
+    }
+
+    pub fn is_empty(&self) -> bool {
+        self.inner.is_empty()
     }
 }
 

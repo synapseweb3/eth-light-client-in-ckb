@@ -1,6 +1,8 @@
 use alloc::{format, vec::Vec};
-use std::path::PathBuf;
+use std::{path::PathBuf, println};
 
+use env_logger::{Builder, Target};
+use log::LevelFilter;
 use walkdir::WalkDir;
 
 mod types;
@@ -30,6 +32,15 @@ pub(crate) mod check_entry {
                 .unwrap_or(false)
         }
     }
+}
+
+pub(crate) fn setup() {
+    let _ = Builder::new()
+        .filter_module("eth_light_client_in_ckb", LevelFilter::Trace)
+        .target(Target::Stdout)
+        .is_test(true)
+        .try_init();
+    println!();
 }
 
 pub(crate) fn find_json_files(in_dir: &str, filename_prefix: &str) -> Vec<PathBuf> {

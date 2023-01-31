@@ -5,7 +5,7 @@ use eth2_types::BeaconBlockHeader;
 use super::load_beacon_block_header_from_json_or_create_default;
 use crate::{
     mmr,
-    tests::find_json_files,
+    tests::{find_json_files, setup},
     types::{core, packed, prelude::*},
 };
 
@@ -111,6 +111,8 @@ struct NewClientParameter {
 }
 
 fn new_client(param: NewClientParameter) {
+    setup();
+
     let case_dir = format!("mainnet/case-{}/beacon", param.case_id);
 
     let headers = {
@@ -221,6 +223,8 @@ struct ProofUpdateParameter {
 }
 
 fn proof_update(param: ProofUpdateParameter) {
+    setup();
+
     let case_dir = format!("mainnet/case-{}/beacon", param.case_id);
 
     let (headers_part1, headers_part2) = {

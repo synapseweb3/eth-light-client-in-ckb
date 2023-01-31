@@ -1,3 +1,6 @@
+#[cfg(feature = "std")]
+use alloc::fmt;
+
 use molecule::prelude::*;
 use ssz_derive::Encode;
 use tree_hash::Hash256;
@@ -86,4 +89,36 @@ pub struct TransactionProof {
 pub struct TransactionPayload {
     pub transaction: Bytes,
     pub receipt: Bytes,
+}
+
+#[cfg(feature = "std")]
+impl fmt::Display for Header {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        if self.is_empty() {
+            write!(f, "{{ slot: {}, empty: true }}", self.slot)
+        } else if f.alternate() {
+            write!(
+                f,
+                "{{ slot: {}, parent: {:#x}, state: {:#x}, body: {:#x} }}",
+                self.slot, self.parent_root, self.state_root, self.body_root
+            )
+        } else {
+            write!(
+                f,
+                "{{ slot: {}, parent: {:#x} }}",
+                self.slot, self.parent_root
+            )
+        }
+    }
+}
+
+#[cfg(feature = "std")]
+impl fmt::Display for Client {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        write!(
+            f,
+            "{{ slots: [{}, {}], tip: {:#x} }}",
+            self.minimal_slot, self.maximal_slot, self.tip_valid_header_root
+        )
+    }
 }

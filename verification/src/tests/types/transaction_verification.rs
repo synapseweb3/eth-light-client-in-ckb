@@ -9,7 +9,7 @@ use tree_hash::TreeHash as _;
 use super::load_beacon_block_header_from_json_or_create_default;
 use crate::{
     mmr,
-    tests::find_json_files,
+    tests::{find_json_files, setup},
     types::{core, packed, prelude::*},
 };
 
@@ -24,6 +24,8 @@ fn test_transaction_verification_case_2() {
 }
 
 fn test_transaction_verification(case_id: usize) {
+    setup();
+
     let beacon_dir = format!("mainnet/case-{}/beacon", case_id);
     let execution_dir = format!("mainnet/case-{}/execution", case_id);
 

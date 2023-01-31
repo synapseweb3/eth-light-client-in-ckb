@@ -21,12 +21,14 @@ merkle_proof     = { version = "0.2.0", default-features = false, git = "https:/
 eth2_ssz_derive  = { git = "https://github.com/yangby-cryptape/lighthouse", rev = "62dc610" }
 tree_hash_derive = { git = "https://github.com/yangby-cryptape/lighthouse", rev = "62dc610" }
 eth2_types       = { git = "https://github.com/yangby-cryptape/lighthouse", rev = "62dc610", package = "types", optional = true }
+log              = { version = "0.4.17", optional = true }
 
 [dev-dependencies]
 eth_light_client_in_ckb-prover = { version = "0.1.0-alpha.0", path = "../prover" }
 serde_json = "1.0"
 walkdir = "2.3.2"
 ethers-core = "1.0.2"
+env_logger = "0.10.0"
 
 [features]
 default = ["std"]
@@ -34,5 +36,6 @@ std = [
     "molecule/std",
     "ckb-mmr/std",
     "rlp/std",
-    "eth2_types"
+    "eth2_types",
+    "log"
 ]
