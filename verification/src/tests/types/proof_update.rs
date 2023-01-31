@@ -1,4 +1,5 @@
 use alloc::{format, vec::Vec};
+use std::fs;
 
 use eth2_types::BeaconBlockHeader;
 
@@ -108,6 +109,7 @@ struct NewClientParameter {
     case_id: usize,
     skipped_count_opt: Option<usize>,
     total_count_opt: Option<usize>,
+    dump_dir_opt: Option<&'static str>,
 }
 
 fn new_client(param: NewClientParameter) {
@@ -145,13 +147,13 @@ fn new_client(param: NewClientParameter) {
 
             let packed_header = packed::Header::from_ssz_header(header);
             let header: core::Header = packed_header.unpack();
-            let header = header.calc_cache();
+            let header_with_cache = header.calc_cache();
 
-            if !header.inner.is_empty() {
-                tip_valid_header_root_opt = Some(header.root);
+            if !header_with_cache.inner.is_empty() {
+                tip_valid_header_root_opt = Some(header_with_cache.root);
             }
 
-            mmr.push(header.digest()).unwrap();
+            mmr.push(header_with_cache.digest()).unwrap();
             positions.push(position);
             packed_headers.push(packed_header);
         }
@@ -202,12 +204,19 @@ fn new_client(param: NewClientParameter) {
         .updates(updates)
         .build();
 
+    if let Some(ref dump_dir) = param.dump_dir_opt {
+        let client_filepath = format!("{dump_dir}/client-{minimal_slot}_{maximal_slot}.data");
+        let proof_update_filepath =
+            format!("{dump_dir}/proof_update-{minimal_slot}_{maximal_slot}.data");
+        fs::write(client_filepath, expected_packed_client.as_slice()).unwrap();
+        fs::write(proof_update_filepath, packed_proof_update.as_slice()).unwrap();
+    }
+
     let result = core::Client::new_from_packed_proof_update(packed_proof_update.as_reader());
     assert!(result.is_ok(), "failed to create client from proof update");
 
     if let Ok(actual_client) = result {
         let actual_packed_client = actual_client.pack();
-
         assert_eq!(
             actual_packed_client.as_slice(),
             expected_packed_client.as_slice()
@@ -220,6 +229,7 @@ struct ProofUpdateParameter {
     case_id: usize,
     total_count_opt: Option<usize>,
     split_at_opt: Option<usize>,
+    dump_dir_opt: Option<&'static str>,
 }
 
 fn proof_update(param: ProofUpdateParameter) {
@@ -244,24 +254,23 @@ fn proof_update(param: ProofUpdateParameter) {
     };
 
     let store = mmr::lib::util::MemStore::default();
-    let (tip_valid_header_root, mmr) = {
+    let (tip_valid_header_root, headers_mmr_root, mmr) = {
         let mut mmr = mmr::ClientRootMMR::new(0, &store);
         let mut tip_valid_header_root_opt = None;
         for header in &headers_part1 {
             let header: core::Header = packed::Header::from_ssz_header(header).unpack();
-            let header = header.calc_cache();
-            if !header.inner.is_empty() {
-                tip_valid_header_root_opt = Some(header.root);
+            let header_with_cache = header.calc_cache();
+            if !header_with_cache.inner.is_empty() {
+                tip_valid_header_root_opt = Some(header_with_cache.root);
             }
-            mmr.push(header.digest()).unwrap();
+            mmr.push(header_with_cache.digest()).unwrap();
         }
-        (tip_valid_header_root_opt.unwrap(), mmr)
+        let headers_mmr_root = mmr.get_root().unwrap().unpack();
+        (tip_valid_header_root_opt.unwrap(), headers_mmr_root, mmr)
     };
 
     let minimal_slot = headers_part1[0].slot.into();
     let maximal_slot = headers_part1[headers_part1.len() - 1].slot.into();
-    let headers_mmr_root = mmr.get_root().unwrap().unpack();
-
     let client = core::Client {
         minimal_slot,
         maximal_slot,
@@ -269,37 +278,61 @@ fn proof_update(param: ProofUpdateParameter) {
         headers_mmr_root,
     };
 
-    let (mmr, packed_headers, new_headers_mmr_proof) = {
+    let (new_tip_valid_header_root, packed_headers, new_headers_mmr_root, new_headers_mmr_proof) = {
         let mut mmr = mmr;
         let mut positions = Vec::with_capacity(headers_part2.len());
         let mut packed_headers = Vec::with_capacity(headers_part2.len());
+        let mut tip_valid_header_root_opt = None;
+
         for header in &headers_part2 {
             let header_slot: u64 = header.slot.into();
             let index = header_slot - client.minimal_slot;
             let position = mmr::lib::leaf_index_to_pos(index);
-            positions.push(position);
 
             let packed_header = packed::Header::from_ssz_header(header);
             let header = packed_header.unpack();
             let header_with_cache = header.calc_cache();
-            mmr.push(header_with_cache.digest()).unwrap();
 
+            if !header_with_cache.inner.is_empty() {
+                tip_valid_header_root_opt = Some(header_with_cache.root);
+            }
+
+            mmr.push(header_with_cache.digest()).unwrap();
+            positions.push(position);
             packed_headers.push(packed_header);
         }
-        let new_headers_mmr_proof_items = mmr
+
+        let headers_mmr_root = mmr.get_root().unwrap();
+        let headers_mmr_proof_items = mmr
             .gen_proof(positions)
             .unwrap()
             .proof_items()
             .iter()
             .map(Clone::clone)
             .collect::<Vec<_>>();
-        let new_headers_mmr_proof = packed::MmrProof::new_builder()
-            .set(new_headers_mmr_proof_items)
+        let headers_mmr_proof = packed::MmrProof::new_builder()
+            .set(headers_mmr_proof_items)
             .build();
-        (mmr, packed_headers, new_headers_mmr_proof)
+
+        (
+            tip_valid_header_root_opt.unwrap(),
+            packed_headers,
+            headers_mmr_root,
+            headers_mmr_proof,
+        )
     };
 
-    let new_headers_mmr_root = mmr.get_root().unwrap();
+    let new_minimal_slot: u64 = headers_part2[0].slot.into();
+    assert_eq!(new_minimal_slot, maximal_slot + 1);
+    let new_maximal_slot = headers_part2[headers_part2.len() - 1].slot.into();
+    let expected_packed_client = core::Client {
+        minimal_slot,
+        maximal_slot: new_maximal_slot,
+        tip_valid_header_root: new_tip_valid_header_root,
+        headers_mmr_root: new_headers_mmr_root.unpack(),
+    }
+    .pack();
+
     let updates_items = packed_headers
         .into_iter()
         .map(|header| {
@@ -318,6 +351,26 @@ fn proof_update(param: ProofUpdateParameter) {
         .updates(updates)
         .build();
 
+    if let Some(ref dump_dir) = param.dump_dir_opt {
+        let client_filepath = format!("{dump_dir}/client-{minimal_slot}_{maximal_slot}.data");
+        let new_client_filepath =
+            format!("{dump_dir}/client-{minimal_slot}_{new_maximal_slot}.data");
+        let proof_update_filepath =
+            format!("{dump_dir}/proof_update-{new_minimal_slot}_{new_maximal_slot}.data");
+        let packed_client = client.pack();
+        fs::write(client_filepath, packed_client.as_slice()).unwrap();
+        fs::write(new_client_filepath, expected_packed_client.as_slice()).unwrap();
+        fs::write(proof_update_filepath, packed_proof_update.as_slice()).unwrap();
+    }
+
     let result = client.try_apply_packed_proof_update(packed_proof_update.as_reader());
     assert!(result.is_ok(), "failed to update the proof in client");
+
+    if let Ok(actual_client) = result {
+        let actual_packed_client = actual_client.pack();
+        assert_eq!(
+            actual_packed_client.as_slice(),
+            expected_packed_client.as_slice()
+        );
+    }
 }
