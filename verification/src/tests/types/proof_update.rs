@@ -11,6 +11,7 @@ use crate::{
 };
 
 const CASE_2_EMPTY_HEADER_INDEX: usize = 47;
+const CASE_3_CONTINUOUS_EMPTY_HEADERS_INDEX: usize = 29;
 
 #[test]
 fn new_client_case_1_no_empty() {
@@ -47,6 +48,38 @@ fn new_client_case_2_empty_at_the_end_of_updates() {
     let total_count = CASE_2_EMPTY_HEADER_INDEX + 1;
     let param = NewClientParameter {
         case_id: 2,
+        total_count_opt: Some(total_count),
+        ..Default::default()
+    };
+    new_client(param);
+}
+
+#[test]
+#[should_panic(expected = "failed to create client from proof update")]
+fn new_client_case_3_continuous_empty_at_the_start_of_updates() {
+    let skipped_count = CASE_3_CONTINUOUS_EMPTY_HEADERS_INDEX;
+    let param = NewClientParameter {
+        case_id: 3,
+        skipped_count_opt: Some(skipped_count),
+        ..Default::default()
+    };
+    new_client(param);
+}
+
+#[test]
+fn new_client_case_3_continuous_empty_at_the_middle_of_updates() {
+    let param = NewClientParameter {
+        case_id: 3,
+        ..Default::default()
+    };
+    new_client(param);
+}
+
+#[test]
+fn new_client_case_3_continuous_empty_at_the_end_of_updates() {
+    let total_count = CASE_3_CONTINUOUS_EMPTY_HEADERS_INDEX + 2;
+    let param = NewClientParameter {
+        case_id: 3,
         total_count_opt: Some(total_count),
         ..Default::default()
     };
@@ -98,6 +131,59 @@ fn proof_update_case_2_empty_at_the_end_of_updates() {
     let total_count = CASE_2_EMPTY_HEADER_INDEX + 1;
     let param = ProofUpdateParameter {
         case_id: 2,
+        total_count_opt: Some(total_count),
+        ..Default::default()
+    };
+    proof_update(param);
+}
+
+#[test]
+fn proof_update_case_3_continuous_empty_client() {
+    let split_at = CASE_3_CONTINUOUS_EMPTY_HEADERS_INDEX + 2;
+    let param = ProofUpdateParameter {
+        case_id: 3,
+        split_at_opt: Some(split_at),
+        ..Default::default()
+    };
+    proof_update(param);
+}
+
+#[test]
+fn proof_update_case_3_continuous_empty_at_the_start_of_updates() {
+    let split_at = CASE_3_CONTINUOUS_EMPTY_HEADERS_INDEX;
+    let param = ProofUpdateParameter {
+        case_id: 3,
+        split_at_opt: Some(split_at),
+        ..Default::default()
+    };
+    proof_update(param);
+}
+
+#[test]
+fn proof_update_case_3_continuous_empty_at_the_middle_of_updates() {
+    let param = ProofUpdateParameter {
+        case_id: 3,
+        ..Default::default()
+    };
+    proof_update(param);
+}
+
+#[test]
+fn proof_update_case_3_continuous_empty_at_the_middle_of_updates_and_split() {
+    let split_at = CASE_3_CONTINUOUS_EMPTY_HEADERS_INDEX + 1;
+    let param = ProofUpdateParameter {
+        case_id: 3,
+        split_at_opt: Some(split_at),
+        ..Default::default()
+    };
+    proof_update(param);
+}
+
+#[test]
+fn proof_update_case_3_continuous_empty_at_the_end_of_updates() {
+    let total_count = CASE_3_CONTINUOUS_EMPTY_HEADERS_INDEX + 2;
+    let param = ProofUpdateParameter {
+        case_id: 3,
         total_count_opt: Some(total_count),
         ..Default::default()
     };
