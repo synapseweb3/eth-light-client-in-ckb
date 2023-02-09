@@ -129,12 +129,11 @@ impl core::Client {
                 }
 
                 if !curr_cached_header.inner.is_empty() {
-                    if !prev_cached_header_root.is_zero()
-                        && prev_cached_header_root != curr_cached_header.inner.parent_root
-                    {
+                    if prev_cached_header_root != curr_cached_header.inner.parent_root {
                         error!(
                             "current header isn't continuous with previous header on root, \
-                            current: {curr_cached_header}, previous: {prev_cached_header}"
+                            current: {curr_cached_header}, previous: {prev_cached_header} \
+                            previous valid header root: {prev_cached_header_root}"
                         );
                         return Err(ProofUpdateError::UnmatchedParentRoot);
                     }
