@@ -13,6 +13,6 @@ eth_light_client_in_ckb-verification = { version = "0.1.0-alpha.0", path = "../v
 ethers-core = "1.0.2"
 cita_trie = "4.0.0"
 hasher = "0.1.4"
-eth2_types       = { git = "https://github.com/yangby-cryptape/lighthouse", rev = "62dc610", package = "types" }
-tree_hash        = { git = "https://github.com/yangby-cryptape/lighthouse", rev = "62dc610" }
-merkle_proof     = { git = "https://github.com/yangby-cryptape/lighthouse", rev = "62dc610" }
+eth2_types       = { git = "https://github.com/yangby-cryptape/lighthouse", rev = "307ade9", package = "types" }
+tree_hash        = { git = "https://github.com/yangby-cryptape/lighthouse", rev = "307ade9" }
+merkle_proof     = { git = "https://github.com/yangby-cryptape/lighthouse", rev = "307ade9" }
