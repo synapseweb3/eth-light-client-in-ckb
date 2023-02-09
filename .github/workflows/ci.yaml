@@ -11,42 +11,32 @@ env:
   CARGO_TERM_COLOR: always
   RUSTFLAGS: -D warnings
   RUST_BACKTRACE: full
-  RUST_TOOLCHAIN: 1.65.0
+  RUST_TOOLCHAIN: 1.67.0
 jobs:
   rustfmt:
     name: Checks / Format
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v2
-        with:
-          submodules: recursive
-      - uses: actions-rs/toolchain@v1
-        with:
-          profile: minimal
-          toolchain: ${{ env.RUST_TOOLCHAIN }}
-          override: true
-          components: rustfmt
-      - uses: actions-rs/cargo@v1
-        with:
-          command: fmt
-          args: --all -- --check
+      - name: Checkout the Repository
+        uses: actions/checkout@v2
+      - name: Install Rust Toolchain
+        run: |
+          rustup toolchain install ${{ env.RUST_TOOLCHAIN }} --profile minimal --component rustfmt
+          rustup override set ${{ env.RUST_TOOLCHAIN }}
+      - name: Format Check
+        run: cargo fmt --all -- --check
   clippy:
     name: Checks / Clippy
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v2
-        with:
-          submodules: recursive
-      - uses: actions-rs/toolchain@v1
-        with:
-          profile: minimal
-          toolchain: ${{ env.RUST_TOOLCHAIN }}
-          override: true
-          components: clippy
-      - uses: actions-rs/clippy-check@v1
-        with:
-          token: ${{ secrets.GITHUB_TOKEN }}
-          args: -- --deny warnings
+      - name: Checkout the Repository
+        uses: actions/checkout@v2
+      - name: Install Rust Toolchain
+        run: |
+          rustup toolchain install ${{ env.RUST_TOOLCHAIN }} --profile minimal --component clippy
+          rustup override set ${{ env.RUST_TOOLCHAIN }}
+      - name: Lint Check
+        run: cargo clippy --workspace -- --deny warnings
   test:
     name: Tests / Build & Test
     needs: [ rustfmt, clippy ]
@@ -57,19 +47,13 @@ jobs:
       fail-fast: true
       max-parallel: 3
     steps:
-      - uses: actions/checkout@v2
-        with:
-          submodules: recursive
-      - uses: actions-rs/toolchain@v1
-        with:
-          profile: minimal
-          toolchain: ${{ env.RUST_TOOLCHAIN }}
-          override: true
-      - uses: actions-rs/cargo@v1
-        with:
-          command: build
-          args: --verbose --all
-      - uses: actions-rs/cargo@v1
-        with:
-          command: test
-          args: --verbose --all
+      - name: Checkout the Repository
+        uses: actions/checkout@v2
+      - name: Install Rust Toolchain
+        run: |
+          rustup toolchain install ${{ env.RUST_TOOLCHAIN }} --profile minimal
+          rustup override set ${{ env.RUST_TOOLCHAIN }}
+      - name: Build
+        run: cargo build --workspace
+      - name: Unit Testing
+        run: cargo test --workspace
