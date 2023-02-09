@@ -60,7 +60,7 @@ impl core::Client {
             header.calc_cache()
         };
         let mut prev_cached_header: mmr::HeaderWithCache;
-        let mut prev_cached_header_root: Hash256;
+        let mut curr_tip_valid_header_root: Hash256;
 
         {
             info!("first header: {curr_cached_header}");
@@ -77,7 +77,7 @@ impl core::Client {
                     return Err(ProofUpdateError::FirstHeaderSlot);
                 }
 
-                prev_cached_header_root = if curr_cached_header.inner.is_empty() {
+                curr_tip_valid_header_root = if curr_cached_header.inner.is_empty() {
                     client.tip_valid_header_root
                 } else {
                     if curr_cached_header.inner.parent_root != client.tip_valid_header_root {
@@ -94,7 +94,7 @@ impl core::Client {
             } else {
                 info!("create new client with updates (len: {updates_len})");
 
-                prev_cached_header_root = if curr_cached_header.inner.is_empty() {
+                curr_tip_valid_header_root = if curr_cached_header.inner.is_empty() {
                     error!(
                         "first header is empty when create new client, \
                         header: {curr_cached_header}"
@@ -118,7 +118,10 @@ impl core::Client {
                     header.calc_cache()
                 };
 
-                debug!("current header: {curr_cached_header}");
+                debug!(
+                    "current tip valid header root: {curr_tip_valid_header_root:#x}, \
+                    current header: {curr_cached_header}"
+                );
 
                 if prev_cached_header.inner.slot + 1 != curr_cached_header.inner.slot {
                     error!(
@@ -129,15 +132,15 @@ impl core::Client {
                 }
 
                 if !curr_cached_header.inner.is_empty() {
-                    if prev_cached_header_root != curr_cached_header.inner.parent_root {
+                    if curr_tip_valid_header_root != curr_cached_header.inner.parent_root {
                         error!(
                             "current header isn't continuous with previous header on root, \
-                            current: {curr_cached_header}, previous: {prev_cached_header} \
-                            previous valid header root: {prev_cached_header_root}"
+                            current tip valid header root: {curr_tip_valid_header_root:#x}, \
+                            current: {curr_cached_header}, previous: {prev_cached_header}"
                         );
                         return Err(ProofUpdateError::UnmatchedParentRoot);
                     }
-                    prev_cached_header_root = curr_cached_header.root;
+                    curr_tip_valid_header_root = curr_cached_header.root;
                 }
 
                 // TODO verify more, such as BLS
@@ -192,7 +195,7 @@ impl core::Client {
         let new_client = Self {
             minimal_slot,
             maximal_slot,
-            tip_valid_header_root: prev_cached_header_root,
+            tip_valid_header_root: curr_tip_valid_header_root,
             headers_mmr_root,
         };
 
