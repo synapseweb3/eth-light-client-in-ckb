@@ -4,6 +4,7 @@ use tree_hash::{Hash256, TreeHash};
 
 use eth_light_client_in_ckb_verification::{constants::consensus_specs as specs, ssz};
 
+#[derive(Clone)]
 pub struct CachedBeaconBlock<T>
 where
     T: EthSpec,
