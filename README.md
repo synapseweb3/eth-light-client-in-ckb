@@ -8,6 +8,11 @@
 
 An [Ethereum] light client in [CKB].
 
+The version 0.1.x is a single client cell solution, which is deprecated.
+And it's no longer maintained.
+
+Please use the latest version to instead of.
+
 [License]: https://img.shields.io/badge/License-MIT-blue.svg
 [GitHub Actions]: https://github.com/synapseweb3/eth-light-client-in-ckb/workflows/CI/badge.svg
 
