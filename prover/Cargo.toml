@@ -1,6 +1,6 @@
 [package]
 name = "eth_light_client_in_ckb-prover"
-version = "0.1.0-alpha.0"
+version = "0.1.0"
 authors = ["Boyu Yang <yangby@cryptape.com>"]
 edition = "2021"
 license = "MIT"
@@ -9,7 +9,7 @@ homepage = "https://github.com/synapseweb3/eth-light-client-in-ckb"
 repository = "https://github.com/synapseweb3/eth-light-client-in-ckb"
 
 [dependencies]
-eth_light_client_in_ckb-verification = { version = "0.1.0-alpha.0", path = "../verification" }
+eth_light_client_in_ckb-verification = { version = "0.1.0", path = "../verification" }
 ethers-core = "1.0.2"
 cita_trie = "4.0.0"
 hasher = "0.1.4"
