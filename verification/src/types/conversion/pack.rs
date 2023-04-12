@@ -1,9 +1,6 @@
 use molecule::prelude::*;
 
-use crate::{
-    constants::consensus_specs,
-    types::{core, packed, prelude::*},
-};
+use crate::types::{core, packed, prelude::*};
 
 impl Pack<packed::Uint64> for core::Uint64 {
     fn pack(&self) -> packed::Uint64 {
@@ -24,34 +21,6 @@ impl Pack<packed::Bytes> for core::Bytes {
         vec.extend_from_slice(&(len as u32).to_le_bytes()[..]);
         vec.extend_from_slice(self);
         packed::Bytes::new_unchecked(molecule::bytes::Bytes::from(vec))
-    }
-}
-
-impl Pack<packed::Bytes64> for core::Bytes64 {
-    fn pack(&self) -> packed::Bytes64 {
-        packed::Bytes64::new_unchecked(molecule::bytes::Bytes::from(self.to_vec()))
-    }
-}
-
-impl Pack<packed::BlsPubkey> for core::BlsPubkey {
-    fn pack(&self) -> packed::BlsPubkey {
-        packed::BlsPubkey::new_unchecked(molecule::bytes::Bytes::from(self.to_vec()))
-    }
-}
-
-impl Pack<packed::BlsSignature> for core::BlsSignature {
-    fn pack(&self) -> packed::BlsSignature {
-        packed::BlsSignature::new_unchecked(molecule::bytes::Bytes::from(self.to_vec()))
-    }
-}
-
-impl Pack<packed::BlsPubkeyArray> for core::BlsPubkeyArray {
-    fn pack(&self) -> packed::BlsPubkeyArray {
-        let mut vec = Vec::with_capacity(32 * consensus_specs::altair::SYNC_COMMITTEE_SIZE);
-        for pubkey in self {
-            vec.extend_from_slice(pubkey.as_ref());
-        }
-        packed::BlsPubkeyArray::new_unchecked(molecule::bytes::Bytes::from(vec))
     }
 }
 
@@ -99,15 +68,6 @@ impl Pack<packed::Header> for core::Header {
     }
 }
 
-impl Pack<packed::SyncAggregate> for core::SyncAggregate {
-    fn pack(&self) -> packed::SyncAggregate {
-        packed::SyncAggregate::new_builder()
-            .sync_committee_bits(self.sync_committee_bits.pack())
-            .sync_committee_signature(self.sync_committee_signature.pack())
-            .build()
-    }
-}
-
 impl Pack<packed::FinalityUpdate> for core::FinalityUpdate {
     fn pack(&self) -> packed::FinalityUpdate {
         packed::FinalityUpdate::new_builder()
@@ -118,38 +78,10 @@ impl Pack<packed::FinalityUpdate> for core::FinalityUpdate {
     }
 }
 
-impl Pack<packed::SyncCommittee> for core::SyncCommittee {
-    fn pack(&self) -> packed::SyncCommittee {
-        packed::SyncCommittee::new_builder()
-            .pubkeys(self.pubkeys.pack())
-            .aggregate_pubkey(self.aggregate_pubkey.pack())
-            .build()
-    }
-}
-
-impl Pack<packed::HeaderVec> for core::HeaderVec {
-    fn pack(&self) -> packed::HeaderVec {
-        packed::HeaderVec::new_builder()
-            .set(self.iter().map(|v| v.pack()).collect())
-            .build()
-    }
-}
-
 impl Pack<packed::FinalityUpdateVec> for core::FinalityUpdateVec {
     fn pack(&self) -> packed::FinalityUpdateVec {
         packed::FinalityUpdateVec::new_builder()
             .set(self.iter().map(|v| v.pack()).collect())
-            .build()
-    }
-}
-
-impl Pack<packed::Client> for core::Client {
-    fn pack(&self) -> packed::Client {
-        packed::Client::new_builder()
-            .minimal_slot(self.minimal_slot.pack())
-            .maximal_slot(self.maximal_slot.pack())
-            .tip_valid_header_root(self.tip_valid_header_root.pack())
-            .headers_mmr_root(self.headers_mmr_root.pack())
             .build()
     }
 }
@@ -184,6 +116,36 @@ impl Pack<packed::TransactionPayload> for core::TransactionPayload {
         packed::TransactionPayload::new_builder()
             .transaction(self.transaction.pack())
             .receipt(self.receipt.pack())
+            .build()
+    }
+}
+
+impl Pack<packed::ClientInfo> for core::ClientInfo {
+    fn pack(&self) -> packed::ClientInfo {
+        packed::ClientInfo::new_builder()
+            .last_id(self.last_id.into())
+            .minimal_updates_count(self.minimal_updates_count.into())
+            .build()
+    }
+}
+
+impl Pack<packed::Client> for core::Client {
+    fn pack(&self) -> packed::Client {
+        packed::Client::new_builder()
+            .id(self.id.into())
+            .minimal_slot(self.minimal_slot.pack())
+            .maximal_slot(self.maximal_slot.pack())
+            .tip_valid_header_root(self.tip_valid_header_root.pack())
+            .headers_mmr_root(self.headers_mmr_root.pack())
+            .build()
+    }
+}
+
+impl Pack<packed::ClientTypeArgs> for core::ClientTypeArgs {
+    fn pack(&self) -> packed::ClientTypeArgs {
+        packed::ClientTypeArgs::new_builder()
+            .type_id(self.type_id.pack())
+            .cells_count(self.cells_count.into())
             .build()
     }
 }

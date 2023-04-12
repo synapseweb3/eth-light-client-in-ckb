@@ -301,6 +301,7 @@ fn new_client(param: NewClientParameter) {
     };
 
     let expected_packed_client = core::Client {
+        id: 0,
         minimal_slot,
         maximal_slot,
         tip_valid_header_root,
@@ -394,6 +395,7 @@ fn proof_update(param: ProofUpdateParameter) {
     let minimal_slot = headers_part1[0].slot.into();
     let maximal_slot = headers_part1[headers_part1.len() - 1].slot.into();
     let client = core::Client {
+        id: 0,
         minimal_slot,
         maximal_slot,
         tip_valid_header_root,
@@ -448,6 +450,7 @@ fn proof_update(param: ProofUpdateParameter) {
     assert_eq!(new_minimal_slot, maximal_slot + 1);
     let new_maximal_slot = headers_part2[headers_part2.len() - 1].slot.into();
     let expected_packed_client = core::Client {
+        id: 0,
         minimal_slot,
         maximal_slot: new_maximal_slot,
         tip_valid_header_root: new_tip_valid_header_root,

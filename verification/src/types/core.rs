@@ -10,12 +10,6 @@ pub type Uint64 = u64;
 pub type Hash = Hash256;
 pub type Bytes = Vec<u8>;
 
-pub type Bytes64 = [u8; 64];
-pub type BlsPubkey = [u8; 32];
-pub type BlsSignature = [u8; 96];
-
-pub type BlsPubkeyArray = [BlsPubkey; 512];
-
 pub type SszProof = Vec<Hash>;
 pub type MptProof = Vec<Bytes>;
 
@@ -36,35 +30,13 @@ pub struct Header {
 }
 
 #[derive(Clone)]
-pub struct SyncAggregate {
-    pub sync_committee_bits: Bytes64,
-    pub sync_committee_signature: BlsSignature,
-}
-
-#[derive(Clone)]
 pub struct FinalityUpdate {
     pub attested_header: Header,
     pub finalized_header: Header,
     pub finality_branch: SszProof,
 }
 
-#[derive(Clone)]
-pub struct SyncCommittee {
-    pub period: Uint64,
-    pub pubkeys: BlsPubkeyArray,
-    pub aggregate_pubkey: BlsPubkey,
-}
-
-pub type HeaderVec = Vec<Header>;
 pub type FinalityUpdateVec = Vec<FinalityUpdate>;
-
-#[derive(Clone)]
-pub struct Client {
-    pub minimal_slot: Uint64,
-    pub maximal_slot: Uint64,
-    pub tip_valid_header_root: Hash,
-    pub headers_mmr_root: HeaderDigest,
-}
 
 #[derive(Clone)]
 pub struct ProofUpdate {
@@ -91,6 +63,27 @@ pub struct TransactionPayload {
     pub receipt: Bytes,
 }
 
+#[derive(Clone)]
+pub struct ClientInfo {
+    pub last_id: u8,
+    pub minimal_updates_count: u8,
+}
+
+#[derive(Clone)]
+pub struct Client {
+    pub id: u8,
+    pub minimal_slot: Uint64,
+    pub maximal_slot: Uint64,
+    pub tip_valid_header_root: Hash,
+    pub headers_mmr_root: HeaderDigest,
+}
+
+#[derive(Clone)]
+pub struct ClientTypeArgs {
+    pub type_id: Hash,
+    pub cells_count: u8,
+}
+
 #[cfg(feature = "std")]
 impl fmt::Display for Header {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
@@ -113,12 +106,23 @@ impl fmt::Display for Header {
 }
 
 #[cfg(feature = "std")]
+impl fmt::Display for ClientInfo {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        write!(
+            f,
+            "{{ last_id: {}, minimal_updates_count: {}",
+            self.last_id, self.minimal_updates_count
+        )
+    }
+}
+
+#[cfg(feature = "std")]
 impl fmt::Display for Client {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         write!(
             f,
-            "{{ slots: [{}, {}], tip: {:#x} }}",
-            self.minimal_slot, self.maximal_slot, self.tip_valid_header_root
+            "{{ id: {}, slots: [{}, {}], tip: {:#x} }}",
+            self.id, self.minimal_slot, self.maximal_slot, self.tip_valid_header_root
         )
     }
 }

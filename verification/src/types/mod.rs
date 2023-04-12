@@ -193,6 +193,7 @@ impl core::Client {
 
         let headers_mmr_root = packed_proof_update.new_headers_mmr_root().unpack();
         let new_client = Self {
+            id: 0,
             minimal_slot,
             maximal_slot,
             tip_valid_header_root: curr_tip_valid_header_root,
