@@ -23,6 +23,11 @@ fn test_transaction_verification_case_2() {
     test_transaction_verification(2);
 }
 
+#[test]
+fn test_transaction_verification_case_3() {
+    test_transaction_verification(3);
+}
+
 fn test_transaction_verification(case_id: usize) {
     setup();
 
