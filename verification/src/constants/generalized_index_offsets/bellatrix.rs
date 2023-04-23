@@ -1,4 +1,4 @@
-use crate::constants::consensus_specs as specs;
+use crate::constants::consensus_specs::bellatrix as specs;
 
 pub const TRANSACTION_IN_TRANSACTIONS_DATA: usize = 2usize.pow(specs::TRANSACTIONS_DEPTH);
 

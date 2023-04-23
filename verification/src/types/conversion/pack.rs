@@ -47,7 +47,7 @@ impl Pack<packed::BlsSignature> for core::BlsSignature {
 
 impl Pack<packed::BlsPubkeyArray> for core::BlsPubkeyArray {
     fn pack(&self) -> packed::BlsPubkeyArray {
-        let mut vec = Vec::with_capacity(32 * consensus_specs::SYNC_COMMITTEE_SIZE);
+        let mut vec = Vec::with_capacity(32 * consensus_specs::altair::SYNC_COMMITTEE_SIZE);
         for pubkey in self {
             vec.extend_from_slice(pubkey.as_ref());
         }

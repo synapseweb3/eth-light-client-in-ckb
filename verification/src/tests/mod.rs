@@ -55,3 +55,8 @@ pub(crate) fn find_json_files(in_dir: &str, filename_prefix: &str) -> Vec<PathBu
         .collect::<Vec<_>>();
     json_files
 }
+
+pub(crate) fn find_json_file(in_dir: &str, filename: &str) -> PathBuf {
+    let file = format!("{}/{}/{}", test_data::ROOT, in_dir, filename);
+    PathBuf::from(file)
+}

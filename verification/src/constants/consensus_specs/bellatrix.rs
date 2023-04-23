@@ -4,8 +4,7 @@ use crate::ssz::ceil_depth;
 // Ref: https://github.com/ethereum/consensus-specs/blob/v1.2.0/specs/bellatrix/beacon-chain.md#execution
 pub const MAX_BYTES_PER_TRANSACTION: usize = 1_073_741_824;
 pub const MAX_TRANSACTIONS_PER_PAYLOAD: usize = 1_048_576;
-// Ref: https://github.com/ethereum/consensus-specs/blob/v1.2.0/specs/altair/beacon-chain.md#sync-committee
-pub const SYNC_COMMITTEE_SIZE: usize = 512;
+pub use super::altair::SYNC_COMMITTEE_SIZE;
 
 // There are 14 fields in `execution_payload`:
 // - `receipts_root` is the 4-th field.
