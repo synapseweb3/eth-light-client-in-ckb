@@ -40,6 +40,10 @@ where
     transactions_data_root: Hash256,
     transaction_hashes: Vec<Hash256>,
 
+    // Capella
+    withdrawals_root: Option<Hash256>,
+    bls_to_execution_changes_root: Option<Hash256>,
+
     original: BeaconBlock<T>,
 }
 
@@ -50,8 +54,8 @@ where
     fn from(block: BeaconBlock<T>) -> Self {
         let body = block.body();
         let payload = body.execution_payload().unwrap();
-        let execution_payload = &payload.execution_payload;
-        let transactions = &execution_payload.transactions;
+        let payload_header = payload.to_execution_payload_header();
+        let transactions = payload.transactions().unwrap();
 
         let transaction_hashes = transactions
             .iter()
@@ -60,6 +64,12 @@ where
         let transactions_depth = ssz::ceil_depth(T::max_transactions_per_payload()) as usize;
         let transactions_data_root =
             MerkleTree::create(&transaction_hashes, transactions_depth).hash();
+
+        let withdrawals_root = payload.withdrawals_root().ok();
+        let bls_to_execution_changes_root = body
+            .bls_to_execution_changes()
+            .ok()
+            .map(TreeHash::tree_hash_root);
 
         Self {
             body_root: block.body_root(),
@@ -74,24 +84,27 @@ where
             sync_aggregate_root: body.sync_aggregate().unwrap().tree_hash_root(),
 
             execution_payload_root: payload.tree_hash_root(),
-            parent_hash_root: execution_payload.parent_hash.tree_hash_root(),
-            fee_recipient_root: execution_payload.fee_recipient.tree_hash_root(),
-            state_root: execution_payload.state_root.tree_hash_root(),
-            receipts_root: execution_payload.receipts_root.tree_hash_root(),
-            logs_bloom_root: execution_payload.logs_bloom.tree_hash_root(),
-            prev_randao_root: execution_payload.prev_randao.tree_hash_root(),
-            block_number_root: execution_payload.block_number.tree_hash_root(),
-            gas_limit_root: execution_payload.gas_limit.tree_hash_root(),
-            gas_used_root: execution_payload.gas_used.tree_hash_root(),
-            timestamp_root: execution_payload.timestamp.tree_hash_root(),
-            extra_data_root: execution_payload.extra_data.tree_hash_root(),
-            base_fee_per_gas_root: execution_payload.base_fee_per_gas.tree_hash_root(),
-            block_hash_root: execution_payload.block_hash.tree_hash_root(),
+            parent_hash_root: payload.parent_hash().tree_hash_root(),
+            fee_recipient_root: payload.fee_recipient().tree_hash_root(),
+            state_root: payload_header.state_root().tree_hash_root(),
+            receipts_root: payload_header.receipts_root().tree_hash_root(),
+            logs_bloom_root: payload_header.logs_bloom().tree_hash_root(),
+            prev_randao_root: payload.prev_randao().tree_hash_root(),
+            block_number_root: payload.block_number().tree_hash_root(),
+            gas_limit_root: payload.gas_limit().tree_hash_root(),
+            gas_used_root: payload_header.gas_used().tree_hash_root(),
+            timestamp_root: payload.timestamp().tree_hash_root(),
+            extra_data_root: payload_header.extra_data().tree_hash_root(),
+            base_fee_per_gas_root: payload_header.base_fee_per_gas().tree_hash_root(),
+            block_hash_root: payload.block_hash().tree_hash_root(),
 
             transactions_root: transactions.tree_hash_root(),
             transactions_depth,
             transactions_data_root,
             transaction_hashes,
+
+            withdrawals_root,
+            bls_to_execution_changes_root,
 
             original: block,
         }
@@ -123,22 +136,23 @@ where
             .body()
             .execution_payload()
             .unwrap()
-            .execution_payload
-            .transactions
+            .transactions()
+            .unwrap()
             .len()
     }
 
     pub fn transaction(
         &self,
         index: usize,
-    ) -> Option<&Transaction<<T as EthSpec>::MaxBytesPerTransaction>> {
+    ) -> Option<Transaction<<T as EthSpec>::MaxBytesPerTransaction>> {
         self.original
             .body()
             .execution_payload()
             .unwrap()
-            .execution_payload
-            .transactions
+            .transactions()
+            .unwrap()
             .get(index)
+            .cloned()
     }
 
     pub fn body_root(&self) -> Hash256 {
@@ -173,7 +187,7 @@ where
 
     pub fn generate_transaction_proof_for_execution_payload(&self, index: usize) -> Vec<Hash256> {
         let mut proof = self.generate_transaction_proof_for_transactions(index);
-        let leaves = vec![
+        let mut leaves = vec![
             self.parent_hash_root,
             self.fee_recipient_root,
             self.state_root,
@@ -189,9 +203,21 @@ where
             self.block_hash_root,
             self.transactions_root,
         ];
-        assert_eq!(leaves.len(), specs::EXECUTION_PAYLOAD_FIELDS_COUNT);
-        let depth = specs::EXECUTION_PAYLOAD_DEPTH as usize;
-        let field_index = specs::TRANSACTIONS_IN_EXECUTION_PAYLOAD_INDEX;
+        let (depth, field_index) = if self.slot() < specs::capella::FORK_SLOT {
+            assert_eq!(
+                leaves.len(),
+                specs::bellatrix::EXECUTION_PAYLOAD_FIELDS_COUNT
+            );
+            let depth = specs::bellatrix::EXECUTION_PAYLOAD_DEPTH as usize;
+            let field_index = specs::bellatrix::TRANSACTIONS_IN_EXECUTION_PAYLOAD_INDEX;
+            (depth, field_index)
+        } else {
+            leaves.push(self.withdrawals_root.unwrap());
+            assert_eq!(leaves.len(), specs::capella::EXECUTION_PAYLOAD_FIELDS_COUNT);
+            let depth = specs::capella::EXECUTION_PAYLOAD_DEPTH as usize;
+            let field_index = specs::capella::TRANSACTIONS_IN_EXECUTION_PAYLOAD_INDEX;
+            (depth, field_index)
+        };
         let tree = MerkleTree::create(&leaves, depth);
         let (_, fields_proof) = tree.generate_proof(field_index, depth).unwrap();
         proof.extend(fields_proof);
@@ -200,7 +226,7 @@ where
 
     pub fn generate_transaction_proof_for_block_body(&self, index: usize) -> Vec<Hash256> {
         let mut proof = self.generate_transaction_proof_for_execution_payload(index);
-        let leaves = vec![
+        let mut leaves = vec![
             self.randao_reveal_root,
             self.eth1_data_root,
             self.graffiti_root,
@@ -212,9 +238,18 @@ where
             self.sync_aggregate_root,
             self.execution_payload_root,
         ];
-        assert_eq!(leaves.len(), specs::BLOCK_BODY_FIELDS_COUNT);
-        let depth = specs::BLOCK_BODY_DEPTH as usize;
-        let field_index = specs::EXECUTION_PAYLOAD_IN_BLOCK_BODY_INDEX;
+        let (depth, field_index) = if self.slot() < specs::capella::FORK_SLOT {
+            assert_eq!(leaves.len(), specs::bellatrix::BLOCK_BODY_FIELDS_COUNT);
+            let depth = specs::bellatrix::BLOCK_BODY_DEPTH as usize;
+            let field_index = specs::bellatrix::EXECUTION_PAYLOAD_IN_BLOCK_BODY_INDEX;
+            (depth, field_index)
+        } else {
+            leaves.push(self.bls_to_execution_changes_root.unwrap());
+            assert_eq!(leaves.len(), specs::capella::BLOCK_BODY_FIELDS_COUNT);
+            let depth = specs::capella::BLOCK_BODY_DEPTH as usize;
+            let field_index = specs::capella::EXECUTION_PAYLOAD_IN_BLOCK_BODY_INDEX;
+            (depth, field_index)
+        };
         let tree = MerkleTree::create(&leaves, depth);
         let (_, fields_proof) = tree.generate_proof(field_index, depth).unwrap();
         proof.extend(fields_proof);
@@ -222,7 +257,7 @@ where
     }
 
     pub fn generate_receipts_root_proof_for_execution_payload(&self) -> Vec<Hash256> {
-        let leaves = vec![
+        let mut leaves = vec![
             self.parent_hash_root,
             self.fee_recipient_root,
             self.state_root,
@@ -238,9 +273,22 @@ where
             self.block_hash_root,
             self.transactions_root,
         ];
-        assert_eq!(leaves.len(), specs::EXECUTION_PAYLOAD_FIELDS_COUNT);
-        let depth = specs::EXECUTION_PAYLOAD_DEPTH as usize;
-        let field_index = specs::RECEIPTS_ROOT_IN_EXECUTION_PAYLOAD_INDEX;
+        let (depth, field_index) = if self.slot() < specs::capella::FORK_SLOT {
+            assert_eq!(
+                leaves.len(),
+                specs::bellatrix::EXECUTION_PAYLOAD_FIELDS_COUNT
+            );
+            let depth = specs::bellatrix::EXECUTION_PAYLOAD_DEPTH as usize;
+            let field_index = specs::bellatrix::RECEIPTS_ROOT_IN_EXECUTION_PAYLOAD_INDEX;
+            (depth, field_index)
+        } else {
+            leaves.push(self.withdrawals_root.unwrap());
+            assert_eq!(leaves.len(), specs::capella::EXECUTION_PAYLOAD_FIELDS_COUNT);
+            let depth = specs::capella::EXECUTION_PAYLOAD_DEPTH as usize;
+            let field_index = specs::capella::RECEIPTS_ROOT_IN_EXECUTION_PAYLOAD_INDEX;
+            (depth, field_index)
+        };
+
         let tree = MerkleTree::create(&leaves, depth);
         let (_, proof) = tree.generate_proof(field_index, depth).unwrap();
         proof
@@ -248,7 +296,7 @@ where
 
     pub fn generate_receipts_root_proof_for_block_body(&self) -> Vec<Hash256> {
         let mut proof = self.generate_receipts_root_proof_for_execution_payload();
-        let leaves = vec![
+        let mut leaves = vec![
             self.randao_reveal_root,
             self.eth1_data_root,
             self.graffiti_root,
@@ -260,9 +308,18 @@ where
             self.sync_aggregate_root,
             self.execution_payload_root,
         ];
-        assert_eq!(leaves.len(), specs::BLOCK_BODY_FIELDS_COUNT);
-        let depth = specs::BLOCK_BODY_DEPTH as usize;
-        let field_index = specs::EXECUTION_PAYLOAD_IN_BLOCK_BODY_INDEX;
+        let (depth, field_index) = if self.slot() < specs::capella::FORK_SLOT {
+            assert_eq!(leaves.len(), specs::bellatrix::BLOCK_BODY_FIELDS_COUNT);
+            let depth = specs::bellatrix::BLOCK_BODY_DEPTH as usize;
+            let field_index = specs::bellatrix::EXECUTION_PAYLOAD_IN_BLOCK_BODY_INDEX;
+            (depth, field_index)
+        } else {
+            leaves.push(self.bls_to_execution_changes_root.unwrap());
+            assert_eq!(leaves.len(), specs::capella::BLOCK_BODY_FIELDS_COUNT);
+            let depth = specs::capella::BLOCK_BODY_DEPTH as usize;
+            let field_index = specs::capella::EXECUTION_PAYLOAD_IN_BLOCK_BODY_INDEX;
+            (depth, field_index)
+        };
         let tree = MerkleTree::create(&leaves, depth);
         let (_, fields_proof) = tree.generate_proof(field_index, depth).unwrap();
         proof.extend(fields_proof);

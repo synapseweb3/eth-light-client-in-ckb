@@ -9,7 +9,7 @@ use tree_hash::TreeHash as _;
 use super::load_beacon_block_header_from_json_or_create_default;
 use crate::{
     mmr,
-    tests::{find_json_files, setup},
+    tests::{find_json_file, find_json_files, setup},
     types::{core, packed, prelude::*},
 };
 
@@ -23,6 +23,21 @@ fn test_transaction_verification_case_2() {
     test_transaction_verification(2);
 }
 
+#[test]
+fn test_transaction_verification_case_3() {
+    test_transaction_verification(3);
+}
+
+#[test]
+fn test_transaction_verification_case_4() {
+    test_transaction_verification(4);
+}
+
+#[test]
+fn test_transaction_verification_case_5() {
+    test_transaction_verification(5);
+}
+
 fn test_transaction_verification(case_id: usize) {
     setup();
 
@@ -31,7 +46,6 @@ fn test_transaction_verification(case_id: usize) {
 
     let header_json_files = find_json_files(&beacon_dir, "block-header-slot-");
     let block_json_files = find_json_files(&beacon_dir, "block-slot-");
-    let receipts_json_files = find_json_files(&execution_dir, "block-receipts-number-");
 
     let headers = header_json_files
         .into_iter()
@@ -53,22 +67,6 @@ fn test_transaction_verification(case_id: usize) {
         })
         .collect::<Vec<CachedBeaconBlock<MainnetEthSpec>>>();
 
-    let block_count = {
-        let first_block = &blocks[0];
-        let last_block = &blocks[blocks.len() - 1];
-        last_block.number() - first_block.number() + 1
-    };
-
-    let receipts_list = receipts_json_files
-        .into_iter()
-        .take(block_count as usize)
-        .map(|file| {
-            let json_str = read_to_string(file).unwrap();
-            let receipts: Vec<TransactionReceipt> = serde_json::from_str(&json_str).unwrap();
-            receipts.into()
-        })
-        .collect::<Vec<Receipts>>();
-
     let store = mmr::lib::util::MemStore::default();
     let mmr = {
         let mut mmr = mmr::ClientRootMMR::new(0, &store);
@@ -87,23 +85,32 @@ fn test_transaction_verification(case_id: usize) {
         headers_mmr_root: mmr.get_root().unwrap().unpack(),
     };
 
-    for ((header, block), receipts) in headers
+    for (header, block) in headers
         .into_iter()
         .filter(|ref header| {
             let header: core::Header = packed::Header::from_ssz_header(header).unpack();
             !header.is_empty()
         })
         .zip(blocks.into_iter())
-        .zip(receipts_list.into_iter())
     {
         let slot = block.slot();
+        let number = block.number();
         assert_eq!(
-            slot,
-            header.slot,
-            "failed to check the slot for beacon block and its header: block is #{} but header is #{}",
-            slot,
-            header.slot,
+            slot, header.slot,
+            "failed to check the slot for beacon block and its header:\
+            block is #{} (number: {}) but header is #{}",
+            slot, number, header.slot,
         );
+
+        let receipts: Receipts = {
+            let json_filename = format!("block-receipts-number-{number}.json");
+            let json_file = find_json_file(&execution_dir, &json_filename);
+            let json_str = read_to_string(&json_file).unwrap_or_else(|err| {
+                panic!("failed to read file {} since {}", json_file.display(), err)
+            });
+            let receipts: Vec<TransactionReceipt> = serde_json::from_str(&json_str).unwrap();
+            receipts.into()
+        };
 
         let transactions_count = block.transactions_count();
         let receipts_count = receipts.original().len();
@@ -114,7 +121,6 @@ fn test_transaction_verification(case_id: usize) {
         );
 
         let header: core::Header = packed::Header::from_ssz_header(&header).unpack();
-        let number = block.number();
 
         let receipts_root = receipts.root();
         let receipts_root_ssz_proof = block.generate_receipts_root_proof_for_block_body();

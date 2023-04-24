@@ -87,6 +87,24 @@ fn new_client_case_3_continuous_empty_at_the_end_of_updates() {
 }
 
 #[test]
+fn new_client_case_4_during_fork_capella() {
+    let param = NewClientParameter {
+        case_id: 4,
+        ..Default::default()
+    };
+    new_client(param);
+}
+
+#[test]
+fn new_client_case_5_after_fork_capella() {
+    let param = NewClientParameter {
+        case_id: 5,
+        ..Default::default()
+    };
+    new_client(param);
+}
+
+#[test]
 fn proof_update_case_1_no_empty() {
     let param = ProofUpdateParameter {
         case_id: 1,
@@ -185,6 +203,24 @@ fn proof_update_case_3_continuous_empty_at_the_end_of_updates() {
     let param = ProofUpdateParameter {
         case_id: 3,
         total_count_opt: Some(total_count),
+        ..Default::default()
+    };
+    proof_update(param);
+}
+
+#[test]
+fn proof_update_case_4_during_fork_capella() {
+    let param = ProofUpdateParameter {
+        case_id: 4,
+        ..Default::default()
+    };
+    proof_update(param);
+}
+
+#[test]
+fn proof_update_case_5_after_fork_capella() {
+    let param = ProofUpdateParameter {
+        case_id: 5,
         ..Default::default()
     };
     proof_update(param);
