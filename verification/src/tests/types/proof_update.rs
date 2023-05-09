@@ -87,6 +87,24 @@ fn new_client_case_3_continuous_empty_at_the_end_of_updates() {
 }
 
 #[test]
+fn new_client_case_4_during_fork_capella() {
+    let param = NewClientParameter {
+        case_id: 4,
+        ..Default::default()
+    };
+    new_client(param);
+}
+
+#[test]
+fn new_client_case_5_after_fork_capella() {
+    let param = NewClientParameter {
+        case_id: 5,
+        ..Default::default()
+    };
+    new_client(param);
+}
+
+#[test]
 fn proof_update_case_1_no_empty() {
     let param = ProofUpdateParameter {
         case_id: 1,
@@ -190,6 +208,24 @@ fn proof_update_case_3_continuous_empty_at_the_end_of_updates() {
     proof_update(param);
 }
 
+#[test]
+fn proof_update_case_4_during_fork_capella() {
+    let param = ProofUpdateParameter {
+        case_id: 4,
+        ..Default::default()
+    };
+    proof_update(param);
+}
+
+#[test]
+fn proof_update_case_5_after_fork_capella() {
+    let param = ProofUpdateParameter {
+        case_id: 5,
+        ..Default::default()
+    };
+    proof_update(param);
+}
+
 #[derive(Default)]
 struct NewClientParameter {
     case_id: usize,
@@ -265,6 +301,7 @@ fn new_client(param: NewClientParameter) {
     };
 
     let expected_packed_client = core::Client {
+        id: 0,
         minimal_slot,
         maximal_slot,
         tip_valid_header_root,
@@ -358,6 +395,7 @@ fn proof_update(param: ProofUpdateParameter) {
     let minimal_slot = headers_part1[0].slot.into();
     let maximal_slot = headers_part1[headers_part1.len() - 1].slot.into();
     let client = core::Client {
+        id: 0,
         minimal_slot,
         maximal_slot,
         tip_valid_header_root,
@@ -412,6 +450,7 @@ fn proof_update(param: ProofUpdateParameter) {
     assert_eq!(new_minimal_slot, maximal_slot + 1);
     let new_maximal_slot = headers_part2[headers_part2.len() - 1].slot.into();
     let expected_packed_client = core::Client {
+        id: 0,
         minimal_slot,
         maximal_slot: new_maximal_slot,
         tip_valid_header_root: new_tip_valid_header_root,

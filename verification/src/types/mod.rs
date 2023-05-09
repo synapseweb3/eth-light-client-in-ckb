@@ -16,7 +16,7 @@ pub use generated::packed;
 
 use self::prelude::*;
 use crate::{
-    constants::generalized_index_offsets,
+    constants::{consensus_specs, generalized_index_offsets},
     error::{ProofUpdateError, TxVerificationError},
     mmr, ssz, trie,
 };
@@ -193,6 +193,7 @@ impl core::Client {
 
         let headers_mmr_root = packed_proof_update.new_headers_mmr_root().unpack();
         let new_client = Self {
+            id: 0,
             minimal_slot,
             maximal_slot,
             tip_valid_header_root: curr_tip_valid_header_root,
@@ -294,8 +295,11 @@ impl core::TransactionProof {
             .and_then(|tx| {
                 let tx_root = tx.tree_hash_root();
                 let tx_index = self.transaction_index as usize;
-                let tx_in_block_index =
-                    tx_index + generalized_index_offsets::TRANSACTION_IN_BLOCK_BODY;
+                let tx_in_block_index = if self.header.slot < consensus_specs::capella::FORK_SLOT {
+                    tx_index + generalized_index_offsets::bellatrix::TRANSACTION_IN_BLOCK_BODY
+                } else {
+                    tx_index + generalized_index_offsets::capella::TRANSACTION_IN_BLOCK_BODY
+                };
                 if !ssz::verify_merkle_proof(
                     self.header.body_root,
                     tx_root,
@@ -319,6 +323,12 @@ impl core::TransactionProof {
 
     pub fn verify_receipt(&self, receipt: &[u8]) -> Result<(), TxVerificationError> {
         let key = encode(&self.transaction_index);
+        let receipts_root_in_block_body = if self.header.slot < consensus_specs::capella::FORK_SLOT
+        {
+            generalized_index_offsets::bellatrix::RECEIPTS_ROOT_IN_BLOCK_BODY
+        } else {
+            generalized_index_offsets::capella::RECEIPTS_ROOT_IN_BLOCK_BODY
+        };
         if !trie::verify_proof(
             &self.receipt_mpt_proof,
             self.receipts_root.as_bytes(),
@@ -334,7 +344,7 @@ impl core::TransactionProof {
             self.header.body_root,
             self.receipts_root,
             &self.receipts_root_ssz_proof,
-            generalized_index_offsets::RECEIPTS_ROOT_IN_BLOCK_BODY,
+            receipts_root_in_block_body,
         ) {
             warn!(
                 "failed: verify SSZ proof for {}-th receipt with root {:#x}",

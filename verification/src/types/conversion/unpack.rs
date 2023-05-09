@@ -35,46 +35,6 @@ impl<'r> Unpack<core::Bytes> for packed::BytesReader<'r> {
 }
 impl_conversion_for_entity_unpack!(Bytes);
 
-impl<'r> Unpack<core::Bytes64> for packed::Bytes64Reader<'r> {
-    fn unpack(&self) -> core::Bytes64 {
-        let mut array = [0u8; 64];
-        array.copy_from_slice(self.as_slice());
-        array
-    }
-}
-impl_conversion_for_entity_unpack!(Bytes64);
-
-impl<'r> Unpack<core::BlsPubkey> for packed::BlsPubkeyReader<'r> {
-    fn unpack(&self) -> core::BlsPubkey {
-        let mut array = [0u8; 32];
-        array.copy_from_slice(self.as_slice());
-        array
-    }
-}
-impl_conversion_for_entity_unpack!(BlsPubkey);
-
-impl<'r> Unpack<core::BlsSignature> for packed::BlsSignatureReader<'r> {
-    fn unpack(&self) -> core::BlsSignature {
-        let mut array = [0u8; 96];
-        array.copy_from_slice(self.as_slice());
-        array
-    }
-}
-impl_conversion_for_entity_unpack!(BlsSignature);
-
-impl<'r> Unpack<core::BlsPubkeyArray> for packed::BlsPubkeyArrayReader<'r> {
-    fn unpack(&self) -> core::BlsPubkeyArray {
-        let mut array = [[0u8; 32]; 512];
-        for (i, item) in array.iter_mut().enumerate() {
-            let start = 32 * i;
-            let end = start + 32;
-            item.copy_from_slice(&self.as_slice()[start..end]);
-        }
-        array
-    }
-}
-impl_conversion_for_entity_unpack!(BlsPubkeyArray);
-
 impl<'r> Unpack<core::SszProof> for packed::SszProofReader<'r> {
     fn unpack(&self) -> core::SszProof {
         self.iter().map(|v| v.unpack()).collect()
@@ -118,16 +78,6 @@ impl<'r> Unpack<core::Header> for packed::HeaderReader<'r> {
 }
 impl_conversion_for_entity_unpack!(Header);
 
-impl<'r> Unpack<core::SyncAggregate> for packed::SyncAggregateReader<'r> {
-    fn unpack(&self) -> core::SyncAggregate {
-        core::SyncAggregate {
-            sync_committee_bits: self.sync_committee_bits().unpack(),
-            sync_committee_signature: self.sync_committee_signature().unpack(),
-        }
-    }
-}
-impl_conversion_for_entity_unpack!(SyncAggregate);
-
 impl<'r> Unpack<core::FinalityUpdate> for packed::FinalityUpdateReader<'r> {
     fn unpack(&self) -> core::FinalityUpdate {
         core::FinalityUpdate {
@@ -139,42 +89,12 @@ impl<'r> Unpack<core::FinalityUpdate> for packed::FinalityUpdateReader<'r> {
 }
 impl_conversion_for_entity_unpack!(FinalityUpdate);
 
-impl<'r> Unpack<core::SyncCommittee> for packed::SyncCommitteeReader<'r> {
-    fn unpack(&self) -> core::SyncCommittee {
-        core::SyncCommittee {
-            period: self.period().unpack(),
-            pubkeys: self.pubkeys().unpack(),
-            aggregate_pubkey: self.aggregate_pubkey().unpack(),
-        }
-    }
-}
-impl_conversion_for_entity_unpack!(SyncCommittee);
-
-impl<'r> Unpack<core::HeaderVec> for packed::HeaderVecReader<'r> {
-    fn unpack(&self) -> core::HeaderVec {
-        self.iter().map(|v| v.unpack()).collect()
-    }
-}
-impl_conversion_for_entity_unpack!(HeaderVec);
-
 impl<'r> Unpack<core::FinalityUpdateVec> for packed::FinalityUpdateVecReader<'r> {
     fn unpack(&self) -> core::FinalityUpdateVec {
         self.iter().map(|v| v.unpack()).collect()
     }
 }
 impl_conversion_for_entity_unpack!(FinalityUpdateVec);
-
-impl<'r> Unpack<core::Client> for packed::ClientReader<'r> {
-    fn unpack(&self) -> core::Client {
-        core::Client {
-            minimal_slot: self.minimal_slot().unpack(),
-            maximal_slot: self.maximal_slot().unpack(),
-            tip_valid_header_root: self.tip_valid_header_root().unpack(),
-            headers_mmr_root: self.headers_mmr_root().unpack(),
-        }
-    }
-}
-impl_conversion_for_entity_unpack!(Client);
 
 impl<'r> Unpack<core::ProofUpdate> for packed::ProofUpdateReader<'r> {
     fn unpack(&self) -> core::ProofUpdate {
@@ -212,3 +132,36 @@ impl<'r> Unpack<core::TransactionPayload> for packed::TransactionPayloadReader<'
     }
 }
 impl_conversion_for_entity_unpack!(TransactionPayload);
+
+impl<'r> Unpack<core::ClientInfo> for packed::ClientInfoReader<'r> {
+    fn unpack(&self) -> core::ClientInfo {
+        core::ClientInfo {
+            last_id: self.last_id().into(),
+            minimal_updates_count: self.minimal_updates_count().into(),
+        }
+    }
+}
+impl_conversion_for_entity_unpack!(ClientInfo);
+
+impl<'r> Unpack<core::Client> for packed::ClientReader<'r> {
+    fn unpack(&self) -> core::Client {
+        core::Client {
+            id: self.id().into(),
+            minimal_slot: self.minimal_slot().unpack(),
+            maximal_slot: self.maximal_slot().unpack(),
+            tip_valid_header_root: self.tip_valid_header_root().unpack(),
+            headers_mmr_root: self.headers_mmr_root().unpack(),
+        }
+    }
+}
+impl_conversion_for_entity_unpack!(Client);
+
+impl<'r> Unpack<core::ClientTypeArgs> for packed::ClientTypeArgsReader<'r> {
+    fn unpack(&self) -> core::ClientTypeArgs {
+        core::ClientTypeArgs {
+            type_id: self.type_id().unpack(),
+            cells_count: self.cells_count().into(),
+        }
+    }
+}
+impl_conversion_for_entity_unpack!(ClientTypeArgs);

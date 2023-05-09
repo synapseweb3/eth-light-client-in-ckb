@@ -1,5 +1,5 @@
 MOLC := moleculec
-MOLC_VERSION := 0.7.3
+MOLC_VERSION := 0.7.5
 
 .PHONY: generate-protocols
 GEN_MOL_IN_DIR := verification/schemas

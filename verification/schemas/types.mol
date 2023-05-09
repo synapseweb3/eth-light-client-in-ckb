@@ -1,12 +1,14 @@
+//
+// Basic
+//
+
 array Uint64 [byte; 8];
 array Hash [byte; 32];
 vector Bytes <byte>;
 
-array Bytes64 [byte; 64];
-array BlsPubkey [byte; 32];
-array BlsSignature [byte; 96];
-
-array BlsPubkeyArray [BlsPubkey; 512];
+//
+// Proofs
+//
 
 vector SszProof <Hash>;
 vector MptProof <Bytes>;
@@ -26,32 +28,13 @@ struct Header {
     body_root: Hash,
 }
 
-struct SyncAggregate {
-    sync_committee_bits: Bytes64,
-    sync_committee_signature: BlsSignature,
-}
-
 table FinalityUpdate {
     attested_header: Header,
     finalized_header: Header,
     finality_branch: SszProof,
 }
 
-struct SyncCommittee {
-    period: Uint64,
-    pubkeys: BlsPubkeyArray,
-    aggregate_pubkey: BlsPubkey,
-}
-
-vector HeaderVec <Header>;
 vector FinalityUpdateVec <FinalityUpdate>;
-
-struct Client {
-    minimal_slot: Uint64,
-    maximal_slot: Uint64,
-    tip_valid_header_root: Hash,
-    headers_mmr_root: HeaderDigest,
-}
 
 table ProofUpdate {
     new_headers_mmr_root: HeaderDigest,
@@ -80,4 +63,29 @@ table TransactionPayload {
     transaction: Bytes,
     // Raw data of the transaction receipt.
     receipt: Bytes,
+}
+
+//
+// Cells
+//
+
+// The client info cell, which stored ID of the latest light client cell.
+struct ClientInfo {
+    last_id: byte,
+    minimal_updates_count: byte,
+}
+
+// The client cell.
+struct Client {
+    id: byte,
+    minimal_slot: Uint64,
+    maximal_slot: Uint64,
+    tip_valid_header_root: Hash,
+    headers_mmr_root: HeaderDigest,
+}
+
+// The args for the type script of client cells and client index cell.
+struct ClientTypeArgs {
+    type_id: Hash,
+    cells_count: byte,
 }
