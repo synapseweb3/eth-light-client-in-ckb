@@ -27,7 +27,7 @@ log              = { version = "0.4.17", optional = true }
 eth_light_client_in_ckb-prover = { version = "0.1.0", path = "../prover" }
 serde_json = "1.0"
 walkdir = "2.3.2"
-ethers-core = "1.0.2"
+ethers-core = "2.0.2"
 env_logger = "0.10.0"
 
 [features]

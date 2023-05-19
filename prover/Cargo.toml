@@ -10,7 +10,7 @@ repository = "https://github.com/synapseweb3/eth-light-client-in-ckb"
 
 [dependencies]
 eth_light_client_in_ckb-verification = { version = "0.1.0", path = "../verification" }
-ethers-core = "1.0.2"
+ethers-core = "2.0.2"
 cita_trie = "4.0.0"
 hasher = "0.1.4"
 eth2_types       = { git = "https://github.com/synapseweb3/lighthouse", rev = "2c246d6", package = "types" }
