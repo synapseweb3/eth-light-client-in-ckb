@@ -34,15 +34,13 @@ macro_rules! error {
 }
 
 #[cfg(feature = "std")]
-macro_rules! log_enabled {
-    ($level:tt) => {
-        log::log_enabled!(log::Level::$level)
+macro_rules! log_if_enabled {
+    (|$level:tt | $block_expr:block) => {
+        if log::log_enabled!(log::Level::$level) $block_expr
     };
 }
 
 #[cfg(not(feature = "std"))]
-macro_rules! log_enabled {
-    ($level:tt) => {
-        false
-    };
+macro_rules! log_if_enabled {
+    (|$level:tt | $block_expr:block) => {};
 }

@@ -211,35 +211,39 @@ impl core::Client {
     ) -> Result<(), TxVerificationError> {
         let header_slot = tx_proof.header().slot().unpack();
         if self.minimal_slot > header_slot || self.maximal_slot < header_slot {
-            let tx_proof = tx_proof.unpack();
-            let header = tx_proof.header.calc_cache();
-            warn!(
-                "failed: verify slots for header {:#x}, for its {}-th transaction \
+            log_if_enabled!(|Warn| {
+                let tx_proof = tx_proof.unpack();
+                let header = tx_proof.header.calc_cache();
+                warn!(
+                    "failed: verify slots for header {:#x}, for its {}-th transaction \
                 (client: [{}, {}], header-slot: {header_slot})",
-                header.root, tx_proof.transaction_index, self.minimal_slot, self.maximal_slot
-            );
+                    header.root, tx_proof.transaction_index, self.minimal_slot, self.maximal_slot
+                );
+            });
             return Err(TxVerificationError::Unsynchronized);
         }
         let result = self
             .verify_single_header(tx_proof.header(), tx_proof.header_mmr_proof())
             .map_err(|_| TxVerificationError::Other)?;
         if !result {
-            let tx_proof = tx_proof.unpack();
-            let header = tx_proof.header.calc_cache();
-            warn!(
-                "failed: verify MMR proof for header {:#x}, for its {}-th transaction",
-                header.root, tx_proof.transaction_index
-            );
+            log_if_enabled!(|Warn| {
+                let tx_proof = tx_proof.unpack();
+                let header = tx_proof.header.calc_cache();
+                warn!(
+                    "failed: verify MMR proof for header {:#x}, for its {}-th transaction",
+                    header.root, tx_proof.transaction_index
+                );
+            });
             Err(TxVerificationError::HeaderMmrProof)
         } else {
-            if log_enabled!(Debug) {
+            log_if_enabled!(|Debug| {
                 let tx_proof = tx_proof.unpack();
                 let header = tx_proof.header.calc_cache();
                 debug!(
                     "passed: verify MMR proof for header {:#x}, for its {}-th transaction",
                     header.root, tx_proof.transaction_index
                 );
-            }
+            });
             Ok(())
         }
     }
