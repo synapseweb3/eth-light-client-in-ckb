@@ -16,7 +16,7 @@ pub use generated::packed;
 
 use self::prelude::*;
 use crate::{
-    constants::{consensus_specs, generalized_index_offsets},
+    consensus_specs as specs,
     error::{ProofUpdateError, TxVerificationError},
     mmr, ssz, trie,
 };
@@ -299,10 +299,12 @@ impl core::TransactionProof {
             .and_then(|tx| {
                 let tx_root = tx.tree_hash_root();
                 let tx_index = self.transaction_index as usize;
-                let tx_in_block_index = if self.header.slot < consensus_specs::capella::FORK_SLOT {
-                    tx_index + generalized_index_offsets::bellatrix::TRANSACTION_IN_BLOCK_BODY
+                let tx_in_block_index = if self.header.slot
+                    < specs::helpers::compute_start_slot_at_epoch(specs::capella::FORK_EPOCH)
+                {
+                    tx_index + specs::bellatrix::generalized_index::TRANSACTION_IN_BLOCK_BODY_OFFSET
                 } else {
-                    tx_index + generalized_index_offsets::capella::TRANSACTION_IN_BLOCK_BODY
+                    tx_index + specs::capella::generalized_index::TRANSACTION_IN_BLOCK_BODY_OFFSET
                 };
                 if !ssz::verify_merkle_proof(
                     self.header.body_root,
@@ -327,11 +329,12 @@ impl core::TransactionProof {
 
     pub fn verify_receipt(&self, receipt: &[u8]) -> Result<(), TxVerificationError> {
         let key = encode(&self.transaction_index);
-        let receipts_root_in_block_body = if self.header.slot < consensus_specs::capella::FORK_SLOT
+        let receipts_root_in_block_body = if self.header.slot
+            < specs::helpers::compute_start_slot_at_epoch(specs::capella::FORK_EPOCH)
         {
-            generalized_index_offsets::bellatrix::RECEIPTS_ROOT_IN_BLOCK_BODY
+            specs::bellatrix::generalized_index::RECEIPTS_ROOT_IN_BLOCK_BODY
         } else {
-            generalized_index_offsets::capella::RECEIPTS_ROOT_IN_BLOCK_BODY
+            specs::capella::generalized_index::RECEIPTS_ROOT_IN_BLOCK_BODY
         };
         if !trie::verify_proof(
             &self.receipt_mpt_proof,

@@ -2,7 +2,7 @@ use eth2_types::{BeaconBlock, EthSpec, ExecPayload as _, Slot, Transaction};
 use merkle_proof::MerkleTree;
 use tree_hash::{Hash256, TreeHash};
 
-use eth_light_client_in_ckb_verification::{constants::consensus_specs as specs, ssz};
+use eth_light_client_in_ckb_verification::{consensus_specs as specs, ssz};
 
 #[derive(Clone)]
 pub struct CachedBeaconBlock<T>
@@ -203,19 +203,20 @@ where
             self.block_hash_root,
             self.transactions_root,
         ];
-        let (depth, field_index) = if self.slot() < specs::capella::FORK_SLOT {
-            assert_eq!(
-                leaves.len(),
-                specs::bellatrix::EXECUTION_PAYLOAD_FIELDS_COUNT
-            );
-            let depth = specs::bellatrix::EXECUTION_PAYLOAD_DEPTH as usize;
-            let field_index = specs::bellatrix::TRANSACTIONS_IN_EXECUTION_PAYLOAD_INDEX;
+        let (depth, field_index) = if self.slot()
+            < specs::helpers::compute_start_slot_at_epoch(specs::capella::FORK_EPOCH)
+        {
+            use specs::bellatrix::containers;
+            assert_eq!(leaves.len(), containers::EXECUTION_PAYLOAD_FIELDS_COUNT);
+            let depth = containers::EXECUTION_PAYLOAD_DEPTH as usize;
+            let field_index = containers::TRANSACTIONS_IN_EXECUTION_PAYLOAD_INDEX;
             (depth, field_index)
         } else {
+            use specs::capella::containers;
             leaves.push(self.withdrawals_root.unwrap());
-            assert_eq!(leaves.len(), specs::capella::EXECUTION_PAYLOAD_FIELDS_COUNT);
-            let depth = specs::capella::EXECUTION_PAYLOAD_DEPTH as usize;
-            let field_index = specs::capella::TRANSACTIONS_IN_EXECUTION_PAYLOAD_INDEX;
+            assert_eq!(leaves.len(), containers::EXECUTION_PAYLOAD_FIELDS_COUNT);
+            let depth = containers::EXECUTION_PAYLOAD_DEPTH as usize;
+            let field_index = containers::TRANSACTIONS_IN_EXECUTION_PAYLOAD_INDEX;
             (depth, field_index)
         };
         let tree = MerkleTree::create(&leaves, depth);
@@ -238,16 +239,20 @@ where
             self.sync_aggregate_root,
             self.execution_payload_root,
         ];
-        let (depth, field_index) = if self.slot() < specs::capella::FORK_SLOT {
-            assert_eq!(leaves.len(), specs::bellatrix::BLOCK_BODY_FIELDS_COUNT);
-            let depth = specs::bellatrix::BLOCK_BODY_DEPTH as usize;
-            let field_index = specs::bellatrix::EXECUTION_PAYLOAD_IN_BLOCK_BODY_INDEX;
+        let (depth, field_index) = if self.slot()
+            < specs::helpers::compute_start_slot_at_epoch(specs::capella::FORK_EPOCH)
+        {
+            use specs::bellatrix::containers;
+            assert_eq!(leaves.len(), containers::BLOCK_BODY_FIELDS_COUNT);
+            let depth = containers::BLOCK_BODY_DEPTH as usize;
+            let field_index = containers::EXECUTION_PAYLOAD_IN_BLOCK_BODY_INDEX;
             (depth, field_index)
         } else {
+            use specs::capella::containers;
             leaves.push(self.bls_to_execution_changes_root.unwrap());
-            assert_eq!(leaves.len(), specs::capella::BLOCK_BODY_FIELDS_COUNT);
-            let depth = specs::capella::BLOCK_BODY_DEPTH as usize;
-            let field_index = specs::capella::EXECUTION_PAYLOAD_IN_BLOCK_BODY_INDEX;
+            assert_eq!(leaves.len(), containers::BLOCK_BODY_FIELDS_COUNT);
+            let depth = containers::BLOCK_BODY_DEPTH as usize;
+            let field_index = containers::EXECUTION_PAYLOAD_IN_BLOCK_BODY_INDEX;
             (depth, field_index)
         };
         let tree = MerkleTree::create(&leaves, depth);
@@ -273,19 +278,20 @@ where
             self.block_hash_root,
             self.transactions_root,
         ];
-        let (depth, field_index) = if self.slot() < specs::capella::FORK_SLOT {
-            assert_eq!(
-                leaves.len(),
-                specs::bellatrix::EXECUTION_PAYLOAD_FIELDS_COUNT
-            );
-            let depth = specs::bellatrix::EXECUTION_PAYLOAD_DEPTH as usize;
-            let field_index = specs::bellatrix::RECEIPTS_ROOT_IN_EXECUTION_PAYLOAD_INDEX;
+        let (depth, field_index) = if self.slot()
+            < specs::helpers::compute_start_slot_at_epoch(specs::capella::FORK_EPOCH)
+        {
+            use specs::bellatrix::containers;
+            assert_eq!(leaves.len(), containers::EXECUTION_PAYLOAD_FIELDS_COUNT);
+            let depth = containers::EXECUTION_PAYLOAD_DEPTH as usize;
+            let field_index = containers::RECEIPTS_ROOT_IN_EXECUTION_PAYLOAD_INDEX;
             (depth, field_index)
         } else {
+            use specs::capella::containers;
             leaves.push(self.withdrawals_root.unwrap());
-            assert_eq!(leaves.len(), specs::capella::EXECUTION_PAYLOAD_FIELDS_COUNT);
-            let depth = specs::capella::EXECUTION_PAYLOAD_DEPTH as usize;
-            let field_index = specs::capella::RECEIPTS_ROOT_IN_EXECUTION_PAYLOAD_INDEX;
+            assert_eq!(leaves.len(), containers::EXECUTION_PAYLOAD_FIELDS_COUNT);
+            let depth = containers::EXECUTION_PAYLOAD_DEPTH as usize;
+            let field_index = containers::RECEIPTS_ROOT_IN_EXECUTION_PAYLOAD_INDEX;
             (depth, field_index)
         };
 
@@ -308,16 +314,20 @@ where
             self.sync_aggregate_root,
             self.execution_payload_root,
         ];
-        let (depth, field_index) = if self.slot() < specs::capella::FORK_SLOT {
-            assert_eq!(leaves.len(), specs::bellatrix::BLOCK_BODY_FIELDS_COUNT);
-            let depth = specs::bellatrix::BLOCK_BODY_DEPTH as usize;
-            let field_index = specs::bellatrix::EXECUTION_PAYLOAD_IN_BLOCK_BODY_INDEX;
+        let (depth, field_index) = if self.slot()
+            < specs::helpers::compute_start_slot_at_epoch(specs::capella::FORK_EPOCH)
+        {
+            use specs::bellatrix::containers;
+            assert_eq!(leaves.len(), containers::BLOCK_BODY_FIELDS_COUNT);
+            let depth = containers::BLOCK_BODY_DEPTH as usize;
+            let field_index = containers::EXECUTION_PAYLOAD_IN_BLOCK_BODY_INDEX;
             (depth, field_index)
         } else {
+            use specs::capella::containers;
             leaves.push(self.bls_to_execution_changes_root.unwrap());
-            assert_eq!(leaves.len(), specs::capella::BLOCK_BODY_FIELDS_COUNT);
-            let depth = specs::capella::BLOCK_BODY_DEPTH as usize;
-            let field_index = specs::capella::EXECUTION_PAYLOAD_IN_BLOCK_BODY_INDEX;
+            assert_eq!(leaves.len(), containers::BLOCK_BODY_FIELDS_COUNT);
+            let depth = containers::BLOCK_BODY_DEPTH as usize;
+            let field_index = containers::EXECUTION_PAYLOAD_IN_BLOCK_BODY_INDEX;
             (depth, field_index)
         };
         let tree = MerkleTree::create(&leaves, depth);
