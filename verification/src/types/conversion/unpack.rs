@@ -78,29 +78,17 @@ impl<'r> Unpack<core::Header> for packed::HeaderReader<'r> {
 }
 impl_conversion_for_entity_unpack!(Header);
 
-impl<'r> Unpack<core::FinalityUpdate> for packed::FinalityUpdateReader<'r> {
-    fn unpack(&self) -> core::FinalityUpdate {
-        core::FinalityUpdate {
-            attested_header: self.attested_header().unpack(),
-            finalized_header: self.finalized_header().unpack(),
-            finality_branch: self.finality_branch().unpack(),
-        }
-    }
-}
-impl_conversion_for_entity_unpack!(FinalityUpdate);
-
-impl<'r> Unpack<core::FinalityUpdateVec> for packed::FinalityUpdateVecReader<'r> {
-    fn unpack(&self) -> core::FinalityUpdateVec {
+impl<'r> Unpack<core::HeaderVec> for packed::HeaderVecReader<'r> {
+    fn unpack(&self) -> core::HeaderVec {
         self.iter().map(|v| v.unpack()).collect()
     }
 }
-impl_conversion_for_entity_unpack!(FinalityUpdateVec);
+impl_conversion_for_entity_unpack!(HeaderVec);
 
 impl<'r> Unpack<core::ProofUpdate> for packed::ProofUpdateReader<'r> {
     fn unpack(&self) -> core::ProofUpdate {
         core::ProofUpdate {
             new_headers_mmr_root: self.new_headers_mmr_root().unpack(),
-            next_committee_ssz_proof: self.next_committee_ssz_proof().unpack(),
             new_headers_mmr_proof: self.new_headers_mmr_proof().unpack(),
             updates: self.updates().unpack(),
         }

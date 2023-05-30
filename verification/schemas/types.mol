@@ -28,19 +28,12 @@ struct Header {
     body_root: Hash,
 }
 
-table FinalityUpdate {
-    attested_header: Header,
-    finalized_header: Header,
-    finality_branch: SszProof,
-}
-
-vector FinalityUpdateVec <FinalityUpdate>;
+vector HeaderVec <Header>;
 
 table ProofUpdate {
     new_headers_mmr_root: HeaderDigest,
-    next_committee_ssz_proof: SszProof,
     new_headers_mmr_proof: MmrProof,
-    updates: FinalityUpdateVec,
+    updates: HeaderVec,
 }
 
 table TransactionProof {

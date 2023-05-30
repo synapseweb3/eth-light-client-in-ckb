@@ -2329,8 +2329,8 @@ impl molecule::prelude::Builder for HeaderBuilder {
     }
 }
 #[derive(Clone)]
-pub struct FinalityUpdate(molecule::bytes::Bytes);
-impl ::core::fmt::LowerHex for FinalityUpdate {
+pub struct HeaderVec(molecule::bytes::Bytes);
+impl ::core::fmt::LowerHex for HeaderVec {
     fn fmt(&self, f: &mut ::core::fmt::Formatter) -> ::core::fmt::Result {
         use molecule::hex_string;
         if f.alternate() {
@@ -2339,307 +2339,12 @@ impl ::core::fmt::LowerHex for FinalityUpdate {
         write!(f, "{}", hex_string(self.as_slice()))
     }
 }
-impl ::core::fmt::Debug for FinalityUpdate {
+impl ::core::fmt::Debug for HeaderVec {
     fn fmt(&self, f: &mut ::core::fmt::Formatter) -> ::core::fmt::Result {
         write!(f, "{}({:#x})", Self::NAME, self)
     }
 }
-impl ::core::fmt::Display for FinalityUpdate {
-    fn fmt(&self, f: &mut ::core::fmt::Formatter) -> ::core::fmt::Result {
-        write!(f, "{} {{ ", Self::NAME)?;
-        write!(f, "{}: {}", "attested_header", self.attested_header())?;
-        write!(f, ", {}: {}", "finalized_header", self.finalized_header())?;
-        write!(f, ", {}: {}", "finality_branch", self.finality_branch())?;
-        let extra_count = self.count_extra_fields();
-        if extra_count != 0 {
-            write!(f, ", .. ({} fields)", extra_count)?;
-        }
-        write!(f, " }}")
-    }
-}
-impl ::core::default::Default for FinalityUpdate {
-    fn default() -> Self {
-        let v = molecule::bytes::Bytes::from_static(&Self::DEFAULT_VALUE);
-        FinalityUpdate::new_unchecked(v)
-    }
-}
-impl FinalityUpdate {
-    const DEFAULT_VALUE: [u8; 244] = [
-        244, 0, 0, 0, 16, 0, 0, 0, 128, 0, 0, 0, 240, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-        0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-        0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-        0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-        0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-        0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-        0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-        0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-        0, 0, 0, 0, 0, 0,
-    ];
-    pub const FIELD_COUNT: usize = 3;
-    pub fn total_size(&self) -> usize {
-        molecule::unpack_number(self.as_slice()) as usize
-    }
-    pub fn field_count(&self) -> usize {
-        if self.total_size() == molecule::NUMBER_SIZE {
-            0
-        } else {
-            (molecule::unpack_number(&self.as_slice()[molecule::NUMBER_SIZE..]) as usize / 4) - 1
-        }
-    }
-    pub fn count_extra_fields(&self) -> usize {
-        self.field_count() - Self::FIELD_COUNT
-    }
-    pub fn has_extra_fields(&self) -> bool {
-        Self::FIELD_COUNT != self.field_count()
-    }
-    pub fn attested_header(&self) -> Header {
-        let slice = self.as_slice();
-        let start = molecule::unpack_number(&slice[4..]) as usize;
-        let end = molecule::unpack_number(&slice[8..]) as usize;
-        Header::new_unchecked(self.0.slice(start..end))
-    }
-    pub fn finalized_header(&self) -> Header {
-        let slice = self.as_slice();
-        let start = molecule::unpack_number(&slice[8..]) as usize;
-        let end = molecule::unpack_number(&slice[12..]) as usize;
-        Header::new_unchecked(self.0.slice(start..end))
-    }
-    pub fn finality_branch(&self) -> SszProof {
-        let slice = self.as_slice();
-        let start = molecule::unpack_number(&slice[12..]) as usize;
-        if self.has_extra_fields() {
-            let end = molecule::unpack_number(&slice[16..]) as usize;
-            SszProof::new_unchecked(self.0.slice(start..end))
-        } else {
-            SszProof::new_unchecked(self.0.slice(start..))
-        }
-    }
-    pub fn as_reader<'r>(&'r self) -> FinalityUpdateReader<'r> {
-        FinalityUpdateReader::new_unchecked(self.as_slice())
-    }
-}
-impl molecule::prelude::Entity for FinalityUpdate {
-    type Builder = FinalityUpdateBuilder;
-    const NAME: &'static str = "FinalityUpdate";
-    fn new_unchecked(data: molecule::bytes::Bytes) -> Self {
-        FinalityUpdate(data)
-    }
-    fn as_bytes(&self) -> molecule::bytes::Bytes {
-        self.0.clone()
-    }
-    fn as_slice(&self) -> &[u8] {
-        &self.0[..]
-    }
-    fn from_slice(slice: &[u8]) -> molecule::error::VerificationResult<Self> {
-        FinalityUpdateReader::from_slice(slice).map(|reader| reader.to_entity())
-    }
-    fn from_compatible_slice(slice: &[u8]) -> molecule::error::VerificationResult<Self> {
-        FinalityUpdateReader::from_compatible_slice(slice).map(|reader| reader.to_entity())
-    }
-    fn new_builder() -> Self::Builder {
-        ::core::default::Default::default()
-    }
-    fn as_builder(self) -> Self::Builder {
-        Self::new_builder()
-            .attested_header(self.attested_header())
-            .finalized_header(self.finalized_header())
-            .finality_branch(self.finality_branch())
-    }
-}
-#[derive(Clone, Copy)]
-pub struct FinalityUpdateReader<'r>(&'r [u8]);
-impl<'r> ::core::fmt::LowerHex for FinalityUpdateReader<'r> {
-    fn fmt(&self, f: &mut ::core::fmt::Formatter) -> ::core::fmt::Result {
-        use molecule::hex_string;
-        if f.alternate() {
-            write!(f, "0x")?;
-        }
-        write!(f, "{}", hex_string(self.as_slice()))
-    }
-}
-impl<'r> ::core::fmt::Debug for FinalityUpdateReader<'r> {
-    fn fmt(&self, f: &mut ::core::fmt::Formatter) -> ::core::fmt::Result {
-        write!(f, "{}({:#x})", Self::NAME, self)
-    }
-}
-impl<'r> ::core::fmt::Display for FinalityUpdateReader<'r> {
-    fn fmt(&self, f: &mut ::core::fmt::Formatter) -> ::core::fmt::Result {
-        write!(f, "{} {{ ", Self::NAME)?;
-        write!(f, "{}: {}", "attested_header", self.attested_header())?;
-        write!(f, ", {}: {}", "finalized_header", self.finalized_header())?;
-        write!(f, ", {}: {}", "finality_branch", self.finality_branch())?;
-        let extra_count = self.count_extra_fields();
-        if extra_count != 0 {
-            write!(f, ", .. ({} fields)", extra_count)?;
-        }
-        write!(f, " }}")
-    }
-}
-impl<'r> FinalityUpdateReader<'r> {
-    pub const FIELD_COUNT: usize = 3;
-    pub fn total_size(&self) -> usize {
-        molecule::unpack_number(self.as_slice()) as usize
-    }
-    pub fn field_count(&self) -> usize {
-        if self.total_size() == molecule::NUMBER_SIZE {
-            0
-        } else {
-            (molecule::unpack_number(&self.as_slice()[molecule::NUMBER_SIZE..]) as usize / 4) - 1
-        }
-    }
-    pub fn count_extra_fields(&self) -> usize {
-        self.field_count() - Self::FIELD_COUNT
-    }
-    pub fn has_extra_fields(&self) -> bool {
-        Self::FIELD_COUNT != self.field_count()
-    }
-    pub fn attested_header(&self) -> HeaderReader<'r> {
-        let slice = self.as_slice();
-        let start = molecule::unpack_number(&slice[4..]) as usize;
-        let end = molecule::unpack_number(&slice[8..]) as usize;
-        HeaderReader::new_unchecked(&self.as_slice()[start..end])
-    }
-    pub fn finalized_header(&self) -> HeaderReader<'r> {
-        let slice = self.as_slice();
-        let start = molecule::unpack_number(&slice[8..]) as usize;
-        let end = molecule::unpack_number(&slice[12..]) as usize;
-        HeaderReader::new_unchecked(&self.as_slice()[start..end])
-    }
-    pub fn finality_branch(&self) -> SszProofReader<'r> {
-        let slice = self.as_slice();
-        let start = molecule::unpack_number(&slice[12..]) as usize;
-        if self.has_extra_fields() {
-            let end = molecule::unpack_number(&slice[16..]) as usize;
-            SszProofReader::new_unchecked(&self.as_slice()[start..end])
-        } else {
-            SszProofReader::new_unchecked(&self.as_slice()[start..])
-        }
-    }
-}
-impl<'r> molecule::prelude::Reader<'r> for FinalityUpdateReader<'r> {
-    type Entity = FinalityUpdate;
-    const NAME: &'static str = "FinalityUpdateReader";
-    fn to_entity(&self) -> Self::Entity {
-        Self::Entity::new_unchecked(self.as_slice().to_owned().into())
-    }
-    fn new_unchecked(slice: &'r [u8]) -> Self {
-        FinalityUpdateReader(slice)
-    }
-    fn as_slice(&self) -> &'r [u8] {
-        self.0
-    }
-    fn verify(slice: &[u8], compatible: bool) -> molecule::error::VerificationResult<()> {
-        use molecule::verification_error as ve;
-        let slice_len = slice.len();
-        if slice_len < molecule::NUMBER_SIZE {
-            return ve!(Self, HeaderIsBroken, molecule::NUMBER_SIZE, slice_len);
-        }
-        let total_size = molecule::unpack_number(slice) as usize;
-        if slice_len != total_size {
-            return ve!(Self, TotalSizeNotMatch, total_size, slice_len);
-        }
-        if slice_len < molecule::NUMBER_SIZE * 2 {
-            return ve!(Self, HeaderIsBroken, molecule::NUMBER_SIZE * 2, slice_len);
-        }
-        let offset_first = molecule::unpack_number(&slice[molecule::NUMBER_SIZE..]) as usize;
-        if offset_first % molecule::NUMBER_SIZE != 0 || offset_first < molecule::NUMBER_SIZE * 2 {
-            return ve!(Self, OffsetsNotMatch);
-        }
-        if slice_len < offset_first {
-            return ve!(Self, HeaderIsBroken, offset_first, slice_len);
-        }
-        let field_count = offset_first / molecule::NUMBER_SIZE - 1;
-        if field_count < Self::FIELD_COUNT {
-            return ve!(Self, FieldCountNotMatch, Self::FIELD_COUNT, field_count);
-        } else if !compatible && field_count > Self::FIELD_COUNT {
-            return ve!(Self, FieldCountNotMatch, Self::FIELD_COUNT, field_count);
-        };
-        let mut offsets: Vec<usize> = slice[molecule::NUMBER_SIZE..offset_first]
-            .chunks_exact(molecule::NUMBER_SIZE)
-            .map(|x| molecule::unpack_number(x) as usize)
-            .collect();
-        offsets.push(total_size);
-        if offsets.windows(2).any(|i| i[0] > i[1]) {
-            return ve!(Self, OffsetsNotMatch);
-        }
-        HeaderReader::verify(&slice[offsets[0]..offsets[1]], compatible)?;
-        HeaderReader::verify(&slice[offsets[1]..offsets[2]], compatible)?;
-        SszProofReader::verify(&slice[offsets[2]..offsets[3]], compatible)?;
-        Ok(())
-    }
-}
-#[derive(Debug, Default)]
-pub struct FinalityUpdateBuilder {
-    pub(crate) attested_header: Header,
-    pub(crate) finalized_header: Header,
-    pub(crate) finality_branch: SszProof,
-}
-impl FinalityUpdateBuilder {
-    pub const FIELD_COUNT: usize = 3;
-    pub fn attested_header(mut self, v: Header) -> Self {
-        self.attested_header = v;
-        self
-    }
-    pub fn finalized_header(mut self, v: Header) -> Self {
-        self.finalized_header = v;
-        self
-    }
-    pub fn finality_branch(mut self, v: SszProof) -> Self {
-        self.finality_branch = v;
-        self
-    }
-}
-impl molecule::prelude::Builder for FinalityUpdateBuilder {
-    type Entity = FinalityUpdate;
-    const NAME: &'static str = "FinalityUpdateBuilder";
-    fn expected_length(&self) -> usize {
-        molecule::NUMBER_SIZE * (Self::FIELD_COUNT + 1)
-            + self.attested_header.as_slice().len()
-            + self.finalized_header.as_slice().len()
-            + self.finality_branch.as_slice().len()
-    }
-    fn write<W: molecule::io::Write>(&self, writer: &mut W) -> molecule::io::Result<()> {
-        let mut total_size = molecule::NUMBER_SIZE * (Self::FIELD_COUNT + 1);
-        let mut offsets = Vec::with_capacity(Self::FIELD_COUNT);
-        offsets.push(total_size);
-        total_size += self.attested_header.as_slice().len();
-        offsets.push(total_size);
-        total_size += self.finalized_header.as_slice().len();
-        offsets.push(total_size);
-        total_size += self.finality_branch.as_slice().len();
-        writer.write_all(&molecule::pack_number(total_size as molecule::Number))?;
-        for offset in offsets.into_iter() {
-            writer.write_all(&molecule::pack_number(offset as molecule::Number))?;
-        }
-        writer.write_all(self.attested_header.as_slice())?;
-        writer.write_all(self.finalized_header.as_slice())?;
-        writer.write_all(self.finality_branch.as_slice())?;
-        Ok(())
-    }
-    fn build(&self) -> Self::Entity {
-        let mut inner = Vec::with_capacity(self.expected_length());
-        self.write(&mut inner)
-            .unwrap_or_else(|_| panic!("{} build should be ok", Self::NAME));
-        FinalityUpdate::new_unchecked(inner.into())
-    }
-}
-#[derive(Clone)]
-pub struct FinalityUpdateVec(molecule::bytes::Bytes);
-impl ::core::fmt::LowerHex for FinalityUpdateVec {
-    fn fmt(&self, f: &mut ::core::fmt::Formatter) -> ::core::fmt::Result {
-        use molecule::hex_string;
-        if f.alternate() {
-            write!(f, "0x")?;
-        }
-        write!(f, "{}", hex_string(self.as_slice()))
-    }
-}
-impl ::core::fmt::Debug for FinalityUpdateVec {
-    fn fmt(&self, f: &mut ::core::fmt::Formatter) -> ::core::fmt::Result {
-        write!(f, "{}({:#x})", Self::NAME, self)
-    }
-}
-impl ::core::fmt::Display for FinalityUpdateVec {
+impl ::core::fmt::Display for HeaderVec {
     fn fmt(&self, f: &mut ::core::fmt::Formatter) -> ::core::fmt::Result {
         write!(f, "{} [", Self::NAME)?;
         for i in 0..self.len() {
@@ -2652,23 +2357,20 @@ impl ::core::fmt::Display for FinalityUpdateVec {
         write!(f, "]")
     }
 }
-impl ::core::default::Default for FinalityUpdateVec {
+impl ::core::default::Default for HeaderVec {
     fn default() -> Self {
         let v = molecule::bytes::Bytes::from_static(&Self::DEFAULT_VALUE);
-        FinalityUpdateVec::new_unchecked(v)
+        HeaderVec::new_unchecked(v)
     }
 }
-impl FinalityUpdateVec {
-    const DEFAULT_VALUE: [u8; 4] = [4, 0, 0, 0];
+impl HeaderVec {
+    const DEFAULT_VALUE: [u8; 4] = [0, 0, 0, 0];
+    pub const ITEM_SIZE: usize = 112;
     pub fn total_size(&self) -> usize {
-        molecule::unpack_number(self.as_slice()) as usize
+        molecule::NUMBER_SIZE + Self::ITEM_SIZE * self.item_count()
     }
     pub fn item_count(&self) -> usize {
-        if self.total_size() == molecule::NUMBER_SIZE {
-            0
-        } else {
-            (molecule::unpack_number(&self.as_slice()[molecule::NUMBER_SIZE..]) as usize / 4) - 1
-        }
+        molecule::unpack_number(self.as_slice()) as usize
     }
     pub fn len(&self) -> usize {
         self.item_count()
@@ -2676,34 +2378,27 @@ impl FinalityUpdateVec {
     pub fn is_empty(&self) -> bool {
         self.len() == 0
     }
-    pub fn get(&self, idx: usize) -> Option<FinalityUpdate> {
+    pub fn get(&self, idx: usize) -> Option<Header> {
         if idx >= self.len() {
             None
         } else {
             Some(self.get_unchecked(idx))
         }
     }
-    pub fn get_unchecked(&self, idx: usize) -> FinalityUpdate {
-        let slice = self.as_slice();
-        let start_idx = molecule::NUMBER_SIZE * (1 + idx);
-        let start = molecule::unpack_number(&slice[start_idx..]) as usize;
-        if idx == self.len() - 1 {
-            FinalityUpdate::new_unchecked(self.0.slice(start..))
-        } else {
-            let end_idx = start_idx + molecule::NUMBER_SIZE;
-            let end = molecule::unpack_number(&slice[end_idx..]) as usize;
-            FinalityUpdate::new_unchecked(self.0.slice(start..end))
-        }
+    pub fn get_unchecked(&self, idx: usize) -> Header {
+        let start = molecule::NUMBER_SIZE + Self::ITEM_SIZE * idx;
+        let end = start + Self::ITEM_SIZE;
+        Header::new_unchecked(self.0.slice(start..end))
     }
-    pub fn as_reader<'r>(&'r self) -> FinalityUpdateVecReader<'r> {
-        FinalityUpdateVecReader::new_unchecked(self.as_slice())
+    pub fn as_reader<'r>(&'r self) -> HeaderVecReader<'r> {
+        HeaderVecReader::new_unchecked(self.as_slice())
     }
 }
-impl molecule::prelude::Entity for FinalityUpdateVec {
-    type Builder = FinalityUpdateVecBuilder;
-    const NAME: &'static str = "FinalityUpdateVec";
+impl molecule::prelude::Entity for HeaderVec {
+    type Builder = HeaderVecBuilder;
+    const NAME: &'static str = "HeaderVec";
     fn new_unchecked(data: molecule::bytes::Bytes) -> Self {
-        FinalityUpdateVec(data)
+        HeaderVec(data)
     }
     fn as_bytes(&self) -> molecule::bytes::Bytes {
         self.0.clone()
@@ -2712,10 +2407,10 @@ impl molecule::prelude::Entity for FinalityUpdateVec {
         &self.0[..]
     }
     fn from_slice(slice: &[u8]) -> molecule::error::VerificationResult<Self> {
-        FinalityUpdateVecReader::from_slice(slice).map(|reader| reader.to_entity())
+        HeaderVecReader::from_slice(slice).map(|reader| reader.to_entity())
     }
     fn from_compatible_slice(slice: &[u8]) -> molecule::error::VerificationResult<Self> {
-        FinalityUpdateVecReader::from_compatible_slice(slice).map(|reader| reader.to_entity())
+        HeaderVecReader::from_compatible_slice(slice).map(|reader| reader.to_entity())
     }
     fn new_builder() -> Self::Builder {
         ::core::default::Default::default()
@@ -2725,8 +2420,8 @@ impl molecule::prelude::Entity for FinalityUpdateVec {
     }
 }
 #[derive(Clone, Copy)]
-pub struct FinalityUpdateVecReader<'r>(&'r [u8]);
-impl<'r> ::core::fmt::LowerHex for FinalityUpdateVecReader<'r> {
+pub struct HeaderVecReader<'r>(&'r [u8]);
+impl<'r> ::core::fmt::LowerHex for HeaderVecReader<'r> {
     fn fmt(&self, f: &mut ::core::fmt::Formatter) -> ::core::fmt::Result {
         use molecule::hex_string;
         if f.alternate() {
@@ -2735,12 +2430,12 @@ impl<'r> ::core::fmt::LowerHex for FinalityUpdateVecReader<'r> {
         write!(f, "{}", hex_string(self.as_slice()))
     }
 }
-impl<'r> ::core::fmt::Debug for FinalityUpdateVecReader<'r> {
+impl<'r> ::core::fmt::Debug for HeaderVecReader<'r> {
     fn fmt(&self, f: &mut ::core::fmt::Formatter) -> ::core::fmt::Result {
         write!(f, "{}({:#x})", Self::NAME, self)
     }
 }
-impl<'r> ::core::fmt::Display for FinalityUpdateVecReader<'r> {
+impl<'r> ::core::fmt::Display for HeaderVecReader<'r> {
     fn fmt(&self, f: &mut ::core::fmt::Formatter) -> ::core::fmt::Result {
         write!(f, "{} [", Self::NAME)?;
         for i in 0..self.len() {
@@ -2753,16 +2448,13 @@ impl<'r> ::core::fmt::Display for FinalityUpdateVecReader<'r> {
         write!(f, "]")
     }
 }
-impl<'r> FinalityUpdateVecReader<'r> {
+impl<'r> HeaderVecReader<'r> {
+    pub const ITEM_SIZE: usize = 112;
     pub fn total_size(&self) -> usize {
-        molecule::unpack_number(self.as_slice()) as usize
+        molecule::NUMBER_SIZE + Self::ITEM_SIZE * self.item_count()
     }
     pub fn item_count(&self) -> usize {
-        if self.total_size() == molecule::NUMBER_SIZE {
-            0
-        } else {
-            (molecule::unpack_number(&self.as_slice()[molecule::NUMBER_SIZE..]) as usize / 4) - 1
-        }
+        molecule::unpack_number(self.as_slice()) as usize
     }
     pub fn len(&self) -> usize {
         self.item_count()
@@ -2770,140 +2462,85 @@ impl<'r> FinalityUpdateVecReader<'r> {
     pub fn is_empty(&self) -> bool {
         self.len() == 0
     }
-    pub fn get(&self, idx: usize) -> Option<FinalityUpdateReader<'r>> {
+    pub fn get(&self, idx: usize) -> Option<HeaderReader<'r>> {
         if idx >= self.len() {
             None
         } else {
             Some(self.get_unchecked(idx))
         }
     }
-    pub fn get_unchecked(&self, idx: usize) -> FinalityUpdateReader<'r> {
-        let slice = self.as_slice();
-        let start_idx = molecule::NUMBER_SIZE * (1 + idx);
-        let start = molecule::unpack_number(&slice[start_idx..]) as usize;
-        if idx == self.len() - 1 {
-            FinalityUpdateReader::new_unchecked(&self.as_slice()[start..])
-        } else {
-            let end_idx = start_idx + molecule::NUMBER_SIZE;
-            let end = molecule::unpack_number(&slice[end_idx..]) as usize;
-            FinalityUpdateReader::new_unchecked(&self.as_slice()[start..end])
-        }
+    pub fn get_unchecked(&self, idx: usize) -> HeaderReader<'r> {
+        let start = molecule::NUMBER_SIZE + Self::ITEM_SIZE * idx;
+        let end = start + Self::ITEM_SIZE;
+        HeaderReader::new_unchecked(&self.as_slice()[start..end])
     }
 }
-impl<'r> molecule::prelude::Reader<'r> for FinalityUpdateVecReader<'r> {
-    type Entity = FinalityUpdateVec;
-    const NAME: &'static str = "FinalityUpdateVecReader";
+impl<'r> molecule::prelude::Reader<'r> for HeaderVecReader<'r> {
+    type Entity = HeaderVec;
+    const NAME: &'static str = "HeaderVecReader";
     fn to_entity(&self) -> Self::Entity {
         Self::Entity::new_unchecked(self.as_slice().to_owned().into())
     }
     fn new_unchecked(slice: &'r [u8]) -> Self {
-        FinalityUpdateVecReader(slice)
+        HeaderVecReader(slice)
     }
     fn as_slice(&self) -> &'r [u8] {
         self.0
     }
-    fn verify(slice: &[u8], compatible: bool) -> molecule::error::VerificationResult<()> {
+    fn verify(slice: &[u8], _compatible: bool) -> molecule::error::VerificationResult<()> {
         use molecule::verification_error as ve;
         let slice_len = slice.len();
         if slice_len < molecule::NUMBER_SIZE {
             return ve!(Self, HeaderIsBroken, molecule::NUMBER_SIZE, slice_len);
         }
-        let total_size = molecule::unpack_number(slice) as usize;
-        if slice_len != total_size {
-            return ve!(Self, TotalSizeNotMatch, total_size, slice_len);
-        }
-        if slice_len == molecule::NUMBER_SIZE {
+        let item_count = molecule::unpack_number(slice) as usize;
+        if item_count == 0 {
+            if slice_len != molecule::NUMBER_SIZE {
+                return ve!(Self, TotalSizeNotMatch, molecule::NUMBER_SIZE, slice_len);
+            }
             return Ok(());
         }
-        if slice_len < molecule::NUMBER_SIZE * 2 {
-            return ve!(
-                Self,
-                TotalSizeNotMatch,
-                molecule::NUMBER_SIZE * 2,
-                slice_len
-            );
-        }
-        let offset_first = molecule::unpack_number(&slice[molecule::NUMBER_SIZE..]) as usize;
-        if offset_first % molecule::NUMBER_SIZE != 0 || offset_first < molecule::NUMBER_SIZE * 2 {
-            return ve!(Self, OffsetsNotMatch);
-        }
-        if slice_len < offset_first {
-            return ve!(Self, HeaderIsBroken, offset_first, slice_len);
-        }
-        let mut offsets: Vec<usize> = slice[molecule::NUMBER_SIZE..offset_first]
-            .chunks_exact(molecule::NUMBER_SIZE)
-            .map(|x| molecule::unpack_number(x) as usize)
-            .collect();
-        offsets.push(total_size);
-        if offsets.windows(2).any(|i| i[0] > i[1]) {
-            return ve!(Self, OffsetsNotMatch);
-        }
-        for pair in offsets.windows(2) {
-            let start = pair[0];
-            let end = pair[1];
-            FinalityUpdateReader::verify(&slice[start..end], compatible)?;
+        let total_size = molecule::NUMBER_SIZE + Self::ITEM_SIZE * item_count;
+        if slice_len != total_size {
+            return ve!(Self, TotalSizeNotMatch, total_size, slice_len);
         }
         Ok(())
     }
 }
 #[derive(Debug, Default)]
-pub struct FinalityUpdateVecBuilder(pub(crate) Vec<FinalityUpdate>);
-impl FinalityUpdateVecBuilder {
-    pub fn set(mut self, v: Vec<FinalityUpdate>) -> Self {
+pub struct HeaderVecBuilder(pub(crate) Vec<Header>);
+impl HeaderVecBuilder {
+    pub const ITEM_SIZE: usize = 112;
+    pub fn set(mut self, v: Vec<Header>) -> Self {
         self.0 = v;
         self
     }
-    pub fn push(mut self, v: FinalityUpdate) -> Self {
+    pub fn push(mut self, v: Header) -> Self {
         self.0.push(v);
         self
     }
-    pub fn extend<T: ::core::iter::IntoIterator<Item = FinalityUpdate>>(mut self, iter: T) -> Self {
+    pub fn extend<T: ::core::iter::IntoIterator<Item = Header>>(mut self, iter: T) -> Self {
         for elem in iter {
             self.0.push(elem);
         }
         self
     }
-    pub fn replace(&mut self, index: usize, v: FinalityUpdate) -> Option<FinalityUpdate> {
+    pub fn replace(&mut self, index: usize, v: Header) -> Option<Header> {
         self.0
             .get_mut(index)
             .map(|item| ::core::mem::replace(item, v))
     }
 }
-impl molecule::prelude::Builder for FinalityUpdateVecBuilder {
-    type Entity = FinalityUpdateVec;
-    const NAME: &'static str = "FinalityUpdateVecBuilder";
+impl molecule::prelude::Builder for HeaderVecBuilder {
+    type Entity = HeaderVec;
+    const NAME: &'static str = "HeaderVecBuilder";
     fn expected_length(&self) -> usize {
-        molecule::NUMBER_SIZE * (self.0.len() + 1)
-            + self
-                .0
-                .iter()
-                .map(|inner| inner.as_slice().len())
-                .sum::<usize>()
+        molecule::NUMBER_SIZE + Self::ITEM_SIZE * self.0.len()
     }
     fn write<W: molecule::io::Write>(&self, writer: &mut W) -> molecule::io::Result<()> {
-        let item_count = self.0.len();
-        if item_count == 0 {
-            writer.write_all(&molecule::pack_number(
-                molecule::NUMBER_SIZE as molecule::Number,
-            ))?;
-        } else {
-            let (total_size, offsets) = self.0.iter().fold(
-                (
-                    molecule::NUMBER_SIZE * (item_count + 1),
-                    Vec::with_capacity(item_count),
-                ),
-                |(start, mut offsets), inner| {
-                    offsets.push(start);
-                    (start + inner.as_slice().len(), offsets)
-                },
-            );
-            writer.write_all(&molecule::pack_number(total_size as molecule::Number))?;
-            for offset in offsets.into_iter() {
-                writer.write_all(&molecule::pack_number(offset as molecule::Number))?;
-            }
-            for inner in self.0.iter() {
-                writer.write_all(inner.as_slice())?;
-            }
+        writer.write_all(&molecule::pack_number(self.0.len() as molecule::Number))?;
+        for inner in &self.0[..] {
+            writer.write_all(inner.as_slice())?;
         }
         Ok(())
     }
@@ -2911,12 +2548,12 @@ impl molecule::prelude::Builder for FinalityUpdateVecBuilder {
         let mut inner = Vec::with_capacity(self.expected_length());
         self.write(&mut inner)
             .unwrap_or_else(|_| panic!("{} build should be ok", Self::NAME));
-        FinalityUpdateVec::new_unchecked(inner.into())
+        HeaderVec::new_unchecked(inner.into())
     }
 }
-pub struct FinalityUpdateVecIterator(FinalityUpdateVec, usize, usize);
-impl ::core::iter::Iterator for FinalityUpdateVecIterator {
-    type Item = FinalityUpdate;
+pub struct HeaderVecIterator(HeaderVec, usize, usize);
+impl ::core::iter::Iterator for HeaderVecIterator {
+    type Item = Header;
     fn next(&mut self) -> Option<Self::Item> {
         if self.1 >= self.2 {
             None
@@ -2927,27 +2564,27 @@ impl ::core::iter::Iterator for FinalityUpdateVecIterator {
         }
     }
 }
-impl ::core::iter::ExactSizeIterator for FinalityUpdateVecIterator {
+impl ::core::iter::ExactSizeIterator for HeaderVecIterator {
     fn len(&self) -> usize {
         self.2 - self.1
     }
 }
-impl ::core::iter::IntoIterator for FinalityUpdateVec {
-    type Item = FinalityUpdate;
-    type IntoIter = FinalityUpdateVecIterator;
+impl ::core::iter::IntoIterator for HeaderVec {
+    type Item = Header;
+    type IntoIter = HeaderVecIterator;
     fn into_iter(self) -> Self::IntoIter {
         let len = self.len();
-        FinalityUpdateVecIterator(self, 0, len)
+        HeaderVecIterator(self, 0, len)
     }
 }
-impl<'r> FinalityUpdateVecReader<'r> {
-    pub fn iter<'t>(&'t self) -> FinalityUpdateVecReaderIterator<'t, 'r> {
-        FinalityUpdateVecReaderIterator(&self, 0, self.len())
+impl<'r> HeaderVecReader<'r> {
+    pub fn iter<'t>(&'t self) -> HeaderVecReaderIterator<'t, 'r> {
+        HeaderVecReaderIterator(&self, 0, self.len())
     }
 }
-pub struct FinalityUpdateVecReaderIterator<'t, 'r>(&'t FinalityUpdateVecReader<'r>, usize, usize);
-impl<'t: 'r, 'r> ::core::iter::Iterator for FinalityUpdateVecReaderIterator<'t, 'r> {
-    type Item = FinalityUpdateReader<'t>;
+pub struct HeaderVecReaderIterator<'t, 'r>(&'t HeaderVecReader<'r>, usize, usize);
+impl<'t: 'r, 'r> ::core::iter::Iterator for HeaderVecReaderIterator<'t, 'r> {
+    type Item = HeaderReader<'t>;
     fn next(&mut self) -> Option<Self::Item> {
         if self.1 >= self.2 {
             None
@@ -2958,7 +2595,7 @@ impl<'t: 'r, 'r> ::core::iter::Iterator for FinalityUpdateVecReaderIterator<'t, 
         }
     }
 }
-impl<'t: 'r, 'r> ::core::iter::ExactSizeIterator for FinalityUpdateVecReaderIterator<'t, 'r> {
+impl<'t: 'r, 'r> ::core::iter::ExactSizeIterator for HeaderVecReaderIterator<'t, 'r> {
     fn len(&self) -> usize {
         self.2 - self.1
     }
@@ -2991,12 +2628,6 @@ impl ::core::fmt::Display for ProofUpdate {
         write!(
             f,
             ", {}: {}",
-            "next_committee_ssz_proof",
-            self.next_committee_ssz_proof()
-        )?;
-        write!(
-            f,
-            ", {}: {}",
             "new_headers_mmr_proof",
             self.new_headers_mmr_proof()
         )?;
@@ -3015,12 +2646,11 @@ impl ::core::default::Default for ProofUpdate {
     }
 }
 impl ProofUpdate {
-    const DEFAULT_VALUE: [u8; 64] = [
-        64, 0, 0, 0, 20, 0, 0, 0, 52, 0, 0, 0, 56, 0, 0, 0, 60, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-        0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-        0, 4, 0, 0, 0,
+    const DEFAULT_VALUE: [u8; 56] = [
+        56, 0, 0, 0, 16, 0, 0, 0, 48, 0, 0, 0, 52, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+        0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
     ];
-    pub const FIELD_COUNT: usize = 4;
+    pub const FIELD_COUNT: usize = 3;
     pub fn total_size(&self) -> usize {
         molecule::unpack_number(self.as_slice()) as usize
     }
@@ -3043,26 +2673,20 @@ impl ProofUpdate {
         let end = molecule::unpack_number(&slice[8..]) as usize;
         HeaderDigest::new_unchecked(self.0.slice(start..end))
     }
-    pub fn next_committee_ssz_proof(&self) -> SszProof {
+    pub fn new_headers_mmr_proof(&self) -> MmrProof {
         let slice = self.as_slice();
         let start = molecule::unpack_number(&slice[8..]) as usize;
         let end = molecule::unpack_number(&slice[12..]) as usize;
-        SszProof::new_unchecked(self.0.slice(start..end))
-    }
-    pub fn new_headers_mmr_proof(&self) -> MmrProof {
-        let slice = self.as_slice();
-        let start = molecule::unpack_number(&slice[12..]) as usize;
-        let end = molecule::unpack_number(&slice[16..]) as usize;
         MmrProof::new_unchecked(self.0.slice(start..end))
     }
-    pub fn updates(&self) -> FinalityUpdateVec {
+    pub fn updates(&self) -> HeaderVec {
         let slice = self.as_slice();
-        let start = molecule::unpack_number(&slice[16..]) as usize;
+        let start = molecule::unpack_number(&slice[12..]) as usize;
         if self.has_extra_fields() {
-            let end = molecule::unpack_number(&slice[20..]) as usize;
-            FinalityUpdateVec::new_unchecked(self.0.slice(start..end))
+            let end = molecule::unpack_number(&slice[16..]) as usize;
+            HeaderVec::new_unchecked(self.0.slice(start..end))
         } else {
-            FinalityUpdateVec::new_unchecked(self.0.slice(start..))
+            HeaderVec::new_unchecked(self.0.slice(start..))
         }
     }
     pub fn as_reader<'r>(&'r self) -> ProofUpdateReader<'r> {
@@ -3093,7 +2717,6 @@ impl molecule::prelude::Entity for ProofUpdate {
     fn as_builder(self) -> Self::Builder {
         Self::new_builder()
             .new_headers_mmr_root(self.new_headers_mmr_root())
-            .next_committee_ssz_proof(self.next_committee_ssz_proof())
             .new_headers_mmr_proof(self.new_headers_mmr_proof())
             .updates(self.updates())
     }
@@ -3126,12 +2749,6 @@ impl<'r> ::core::fmt::Display for ProofUpdateReader<'r> {
         write!(
             f,
             ", {}: {}",
-            "next_committee_ssz_proof",
-            self.next_committee_ssz_proof()
-        )?;
-        write!(
-            f,
-            ", {}: {}",
             "new_headers_mmr_proof",
             self.new_headers_mmr_proof()
         )?;
@@ -3144,7 +2761,7 @@ impl<'r> ::core::fmt::Display for ProofUpdateReader<'r> {
     }
 }
 impl<'r> ProofUpdateReader<'r> {
-    pub const FIELD_COUNT: usize = 4;
+    pub const FIELD_COUNT: usize = 3;
     pub fn total_size(&self) -> usize {
         molecule::unpack_number(self.as_slice()) as usize
     }
@@ -3167,26 +2784,20 @@ impl<'r> ProofUpdateReader<'r> {
         let end = molecule::unpack_number(&slice[8..]) as usize;
         HeaderDigestReader::new_unchecked(&self.as_slice()[start..end])
     }
-    pub fn next_committee_ssz_proof(&self) -> SszProofReader<'r> {
+    pub fn new_headers_mmr_proof(&self) -> MmrProofReader<'r> {
         let slice = self.as_slice();
         let start = molecule::unpack_number(&slice[8..]) as usize;
         let end = molecule::unpack_number(&slice[12..]) as usize;
-        SszProofReader::new_unchecked(&self.as_slice()[start..end])
-    }
-    pub fn new_headers_mmr_proof(&self) -> MmrProofReader<'r> {
-        let slice = self.as_slice();
-        let start = molecule::unpack_number(&slice[12..]) as usize;
-        let end = molecule::unpack_number(&slice[16..]) as usize;
         MmrProofReader::new_unchecked(&self.as_slice()[start..end])
     }
-    pub fn updates(&self) -> FinalityUpdateVecReader<'r> {
+    pub fn updates(&self) -> HeaderVecReader<'r> {
         let slice = self.as_slice();
-        let start = molecule::unpack_number(&slice[16..]) as usize;
+        let start = molecule::unpack_number(&slice[12..]) as usize;
         if self.has_extra_fields() {
-            let end = molecule::unpack_number(&slice[20..]) as usize;
-            FinalityUpdateVecReader::new_unchecked(&self.as_slice()[start..end])
+            let end = molecule::unpack_number(&slice[16..]) as usize;
+            HeaderVecReader::new_unchecked(&self.as_slice()[start..end])
         } else {
-            FinalityUpdateVecReader::new_unchecked(&self.as_slice()[start..])
+            HeaderVecReader::new_unchecked(&self.as_slice()[start..])
         }
     }
 }
@@ -3237,34 +2848,28 @@ impl<'r> molecule::prelude::Reader<'r> for ProofUpdateReader<'r> {
             return ve!(Self, OffsetsNotMatch);
         }
         HeaderDigestReader::verify(&slice[offsets[0]..offsets[1]], compatible)?;
-        SszProofReader::verify(&slice[offsets[1]..offsets[2]], compatible)?;
-        MmrProofReader::verify(&slice[offsets[2]..offsets[3]], compatible)?;
-        FinalityUpdateVecReader::verify(&slice[offsets[3]..offsets[4]], compatible)?;
+        MmrProofReader::verify(&slice[offsets[1]..offsets[2]], compatible)?;
+        HeaderVecReader::verify(&slice[offsets[2]..offsets[3]], compatible)?;
         Ok(())
     }
 }
 #[derive(Debug, Default)]
 pub struct ProofUpdateBuilder {
     pub(crate) new_headers_mmr_root: HeaderDigest,
-    pub(crate) next_committee_ssz_proof: SszProof,
     pub(crate) new_headers_mmr_proof: MmrProof,
-    pub(crate) updates: FinalityUpdateVec,
+    pub(crate) updates: HeaderVec,
 }
 impl ProofUpdateBuilder {
-    pub const FIELD_COUNT: usize = 4;
+    pub const FIELD_COUNT: usize = 3;
     pub fn new_headers_mmr_root(mut self, v: HeaderDigest) -> Self {
         self.new_headers_mmr_root = v;
-        self
-    }
-    pub fn next_committee_ssz_proof(mut self, v: SszProof) -> Self {
-        self.next_committee_ssz_proof = v;
         self
     }
     pub fn new_headers_mmr_proof(mut self, v: MmrProof) -> Self {
         self.new_headers_mmr_proof = v;
         self
     }
-    pub fn updates(mut self, v: FinalityUpdateVec) -> Self {
+    pub fn updates(mut self, v: HeaderVec) -> Self {
         self.updates = v;
         self
     }
@@ -3275,7 +2880,6 @@ impl molecule::prelude::Builder for ProofUpdateBuilder {
     fn expected_length(&self) -> usize {
         molecule::NUMBER_SIZE * (Self::FIELD_COUNT + 1)
             + self.new_headers_mmr_root.as_slice().len()
-            + self.next_committee_ssz_proof.as_slice().len()
             + self.new_headers_mmr_proof.as_slice().len()
             + self.updates.as_slice().len()
     }
@@ -3285,8 +2889,6 @@ impl molecule::prelude::Builder for ProofUpdateBuilder {
         offsets.push(total_size);
         total_size += self.new_headers_mmr_root.as_slice().len();
         offsets.push(total_size);
-        total_size += self.next_committee_ssz_proof.as_slice().len();
-        offsets.push(total_size);
         total_size += self.new_headers_mmr_proof.as_slice().len();
         offsets.push(total_size);
         total_size += self.updates.as_slice().len();
@@ -3295,7 +2897,6 @@ impl molecule::prelude::Builder for ProofUpdateBuilder {
             writer.write_all(&molecule::pack_number(offset as molecule::Number))?;
         }
         writer.write_all(self.new_headers_mmr_root.as_slice())?;
-        writer.write_all(self.next_committee_ssz_proof.as_slice())?;
         writer.write_all(self.new_headers_mmr_proof.as_slice())?;
         writer.write_all(self.updates.as_slice())?;
         Ok(())

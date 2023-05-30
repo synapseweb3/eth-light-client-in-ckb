@@ -56,7 +56,7 @@ impl core::Client {
         let mut header_mmr_index;
 
         let mut curr_cached_header = {
-            let header: core::Header = updates_iter.next().unwrap().finalized_header().unpack();
+            let header: core::Header = updates_iter.next().unwrap().unpack();
             header.calc_cache()
         };
         let mut prev_cached_header: mmr::HeaderWithCache;
@@ -114,7 +114,7 @@ impl core::Client {
             // Check if updates are continuous
             for update in updates_iter {
                 curr_cached_header = {
-                    let header: core::Header = update.finalized_header().unpack();
+                    let header: core::Header = update.unpack();
                     header.calc_cache()
                 };
 

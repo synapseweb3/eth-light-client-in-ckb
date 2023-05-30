@@ -309,17 +309,8 @@ fn new_client(param: NewClientParameter) {
     }
     .pack();
 
-    let updates_items = packed_headers
-        .into_iter()
-        .map(|header| {
-            packed::FinalityUpdate::new_builder()
-                .finalized_header(header)
-                .build()
-        })
-        .collect::<Vec<_>>();
-    let updates = packed::FinalityUpdateVec::new_builder()
-        .set(updates_items)
-        .build();
+    let updates_items = packed_headers.into_iter().collect::<Vec<_>>();
+    let updates = packed::HeaderVec::new_builder().set(updates_items).build();
 
     let packed_proof_update = packed::ProofUpdate::new_builder()
         .new_headers_mmr_root(headers_mmr_root)
@@ -458,17 +449,8 @@ fn proof_update(param: ProofUpdateParameter) {
     }
     .pack();
 
-    let updates_items = packed_headers
-        .into_iter()
-        .map(|header| {
-            packed::FinalityUpdate::new_builder()
-                .finalized_header(header)
-                .build()
-        })
-        .collect::<Vec<_>>();
-    let updates = packed::FinalityUpdateVec::new_builder()
-        .set(updates_items)
-        .build();
+    let updates_items = packed_headers.into_iter().collect::<Vec<_>>();
+    let updates = packed::HeaderVec::new_builder().set(updates_items).build();
 
     let packed_proof_update = packed::ProofUpdate::new_builder()
         .new_headers_mmr_root(new_headers_mmr_root)
