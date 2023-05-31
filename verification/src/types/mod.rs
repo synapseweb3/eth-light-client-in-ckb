@@ -192,8 +192,9 @@ impl core::Client {
         }
 
         let headers_mmr_root = packed_proof_update.new_headers_mmr_root().unpack();
+        let id = prev_client_opt.map(|client| client.id).unwrap_or(0);
         let new_client = Self {
-            id: 0,
+            id,
             minimal_slot,
             maximal_slot,
             tip_valid_header_root: curr_tip_valid_header_root,
@@ -216,7 +217,7 @@ impl core::Client {
                 let header = tx_proof.header.calc_cache();
                 warn!(
                     "failed: verify slots for header {:#x}, for its {}-th transaction \
-                (client: [{}, {}], header-slot: {header_slot})",
+                    (client: [{}, {}], header-slot: {header_slot})",
                     header.root, tx_proof.transaction_index, self.minimal_slot, self.maximal_slot
                 );
             });
