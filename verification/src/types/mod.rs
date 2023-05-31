@@ -16,7 +16,7 @@ pub use generated::packed;
 
 use self::prelude::*;
 use crate::{
-    constants::{consensus_specs, generalized_index_offsets},
+    consensus_specs as specs,
     error::{ProofUpdateError, TxVerificationError},
     mmr, ssz, trie,
 };
@@ -192,8 +192,9 @@ impl core::Client {
         }
 
         let headers_mmr_root = packed_proof_update.new_headers_mmr_root().unpack();
+        let id = prev_client_opt.map(|client| client.id).unwrap_or(0);
         let new_client = Self {
-            id: 0,
+            id,
             minimal_slot,
             maximal_slot,
             tip_valid_header_root: curr_tip_valid_header_root,
@@ -211,35 +212,39 @@ impl core::Client {
     ) -> Result<(), TxVerificationError> {
         let header_slot = tx_proof.header().slot().unpack();
         if self.minimal_slot > header_slot || self.maximal_slot < header_slot {
-            let tx_proof = tx_proof.unpack();
-            let header = tx_proof.header.calc_cache();
-            warn!(
-                "failed: verify slots for header {:#x}, for its {}-th transaction \
-                (client: [{}, {}], header-slot: {header_slot})",
-                header.root, tx_proof.transaction_index, self.minimal_slot, self.maximal_slot
-            );
+            log_if_enabled!(|Warn| {
+                let tx_proof = tx_proof.unpack();
+                let header = tx_proof.header.calc_cache();
+                warn!(
+                    "failed: verify slots for header {:#x}, for its {}-th transaction \
+                    (client: [{}, {}], header-slot: {header_slot})",
+                    header.root, tx_proof.transaction_index, self.minimal_slot, self.maximal_slot
+                );
+            });
             return Err(TxVerificationError::Unsynchronized);
         }
         let result = self
             .verify_single_header(tx_proof.header(), tx_proof.header_mmr_proof())
             .map_err(|_| TxVerificationError::Other)?;
         if !result {
-            let tx_proof = tx_proof.unpack();
-            let header = tx_proof.header.calc_cache();
-            warn!(
-                "failed: verify MMR proof for header {:#x}, for its {}-th transaction",
-                header.root, tx_proof.transaction_index
-            );
+            log_if_enabled!(|Warn| {
+                let tx_proof = tx_proof.unpack();
+                let header = tx_proof.header.calc_cache();
+                warn!(
+                    "failed: verify MMR proof for header {:#x}, for its {}-th transaction",
+                    header.root, tx_proof.transaction_index
+                );
+            });
             Err(TxVerificationError::HeaderMmrProof)
         } else {
-            if log_enabled!(Debug) {
+            log_if_enabled!(|Debug| {
                 let tx_proof = tx_proof.unpack();
                 let header = tx_proof.header.calc_cache();
                 debug!(
                     "passed: verify MMR proof for header {:#x}, for its {}-th transaction",
                     header.root, tx_proof.transaction_index
                 );
-            }
+            });
             Ok(())
         }
     }
@@ -295,10 +300,12 @@ impl core::TransactionProof {
             .and_then(|tx| {
                 let tx_root = tx.tree_hash_root();
                 let tx_index = self.transaction_index as usize;
-                let tx_in_block_index = if self.header.slot < consensus_specs::capella::FORK_SLOT {
-                    tx_index + generalized_index_offsets::bellatrix::TRANSACTION_IN_BLOCK_BODY
+                let tx_in_block_index = if self.header.slot
+                    < specs::helpers::compute_start_slot_at_epoch(specs::capella::FORK_EPOCH)
+                {
+                    tx_index + specs::bellatrix::generalized_index::TRANSACTION_IN_BLOCK_BODY_OFFSET
                 } else {
-                    tx_index + generalized_index_offsets::capella::TRANSACTION_IN_BLOCK_BODY
+                    tx_index + specs::capella::generalized_index::TRANSACTION_IN_BLOCK_BODY_OFFSET
                 };
                 if !ssz::verify_merkle_proof(
                     self.header.body_root,
@@ -323,11 +330,12 @@ impl core::TransactionProof {
 
     pub fn verify_receipt(&self, receipt: &[u8]) -> Result<(), TxVerificationError> {
         let key = encode(&self.transaction_index);
-        let receipts_root_in_block_body = if self.header.slot < consensus_specs::capella::FORK_SLOT
+        let receipts_root_in_block_body = if self.header.slot
+            < specs::helpers::compute_start_slot_at_epoch(specs::capella::FORK_EPOCH)
         {
-            generalized_index_offsets::bellatrix::RECEIPTS_ROOT_IN_BLOCK_BODY
+            specs::bellatrix::generalized_index::RECEIPTS_ROOT_IN_BLOCK_BODY
         } else {
-            generalized_index_offsets::capella::RECEIPTS_ROOT_IN_BLOCK_BODY
+            specs::capella::generalized_index::RECEIPTS_ROOT_IN_BLOCK_BODY
         };
         if !trie::verify_proof(
             &self.receipt_mpt_proof,
