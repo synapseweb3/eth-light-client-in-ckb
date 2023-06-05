@@ -110,7 +110,7 @@ impl fmt::Display for ClientInfo {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         write!(
             f,
-            "{{ last_id: {}, minimal_updates_count: {}",
+            "{{ last_id: {}, minimal_updates_count: {} }}",
             self.last_id, self.minimal_updates_count
         )
     }
