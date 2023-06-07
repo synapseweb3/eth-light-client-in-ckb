@@ -1,5 +1,9 @@
+//! Documentation for bellow data types are written in the Rust source code.
+//!
+//! Ref: ../src/types/core.rs
+
 //
-// Basic
+// Basic Types
 //
 
 array Uint64 [byte; 8];
@@ -7,18 +11,26 @@ array Hash [byte; 32];
 vector Bytes <byte>;
 
 //
-// Proofs
+// Proofs, Public Keys and Signatures
 //
 
 vector SszProof <Hash>;
 vector MptProof <Bytes>;
 
 struct HeaderDigest {
-    // The hash for leaves; otherwise, the hash of children nodes.
     children_hash: Hash,
 }
 
 vector MmrProof <HeaderDigest>;
+
+array BlsPubkey [byte; 48];
+array BlsSignature [byte; 96];
+
+vector BlsPubkeyVec <BlsPubkey>;
+
+//
+// Composite Types
+//
 
 struct Header {
     slot: Uint64,
@@ -28,12 +40,44 @@ struct Header {
     body_root: Hash,
 }
 
+
 vector HeaderVec <Header>;
 
-table ProofUpdate {
-    new_headers_mmr_root: HeaderDigest,
+array SyncCommitteeBits [byte; 64];
+
+struct SyncAggregate {
+    sync_committee_bits: SyncCommitteeBits,
+    sync_committee_signature: BlsSignature,
+}
+
+table SyncCommittee {
+    pubkeys: BlsPubkeyVec,
+    aggregate_pubkey: BlsPubkey,
+}
+
+//
+// Witnesses
+//
+
+table ClientBootstrap {
+    header: Header,
+    current_sync_committee_branch: SszProof,
+}
+
+table ClientUpdate {
+    attested_header: Header,
+    finality_branch: SszProof,
+    sync_aggregate: SyncAggregate,
+    signature_slot: Uint64,
     new_headers_mmr_proof: MmrProof,
-    updates: HeaderVec,
+    headers: HeaderVec,
+}
+
+table SyncCommitteeUpdate {
+    attested_header: Header,
+    next_sync_committee_branch: SszProof,
+    sync_aggregate: SyncAggregate,
+    signature_slot: Uint64,
 }
 
 table TransactionProof {
@@ -41,20 +85,14 @@ table TransactionProof {
     transaction_index: Uint64,
     receipts_root: Hash,
 
-    // Prove header in header_mmr_root.
     header_mmr_proof: MmrProof,
-    // Prove transaction in body_root.
     transaction_ssz_proof: SszProof,
-    // Prove receipt in receipts_root.
     receipt_mpt_proof: MptProof,
-    // Prove receipts_root in body_root.
     receipts_root_ssz_proof: SszProof,
 }
 
 table TransactionPayload {
-    // Raw data of the transaction.
     transaction: Bytes,
-    // Raw data of the transaction receipt.
     receipt: Bytes,
 }
 
@@ -62,23 +100,26 @@ table TransactionPayload {
 // Cells
 //
 
-// The client info cell, which stored ID of the latest light client cell.
 struct ClientInfo {
-    last_id: byte,
-    minimal_updates_count: byte,
+    last_client_id: byte,
+    minimal_headers_count: byte,
+    genesis_validators_root: Hash,
 }
 
-// The client cell.
 struct Client {
     id: byte,
     minimal_slot: Uint64,
     maximal_slot: Uint64,
-    tip_valid_header_root: Hash,
+    tip_header_root: Hash,
     headers_mmr_root: HeaderDigest,
 }
 
-// The args for the type script of client cells and client index cell.
+table ClientSyncCommittee {
+    period: Uint64,
+    data: SyncCommittee,
+}
+
 struct ClientTypeArgs {
     type_id: Hash,
-    cells_count: byte,
+    clients_count: byte,
 }

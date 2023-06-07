@@ -12,16 +12,19 @@ repository = "https://github.com/synapseweb3/eth-light-client-in-ckb"
 molecule         = { version = "=0.7.5", default-features = false }
 ckb-mmr          = { version = "0.5.2", default-features = false, package = "ckb-merkle-mountain-range" }
 rlp              = { version = "0.5.2", default-features = false }
+ethereum-types   = { version = "0.14.1", default-features = false  }
 tiny-keccak      = { version = "2.0.2", features = ["keccak"] }
-eth2_hashing     = { version = "0.3.0", default-features = false, git = "https://github.com/synapseweb3/lighthouse", rev = "2c246d6" }
-eth2_ssz         = { version = "0.4.1", default-features = false, git = "https://github.com/synapseweb3/lighthouse", rev = "2c246d6" }
-eth2_ssz_types   = { version = "0.2.2", default-features = false, git = "https://github.com/synapseweb3/lighthouse", rev = "2c246d6" }
-tree_hash        = { version = "0.4.1", default-features = false, git = "https://github.com/synapseweb3/lighthouse", rev = "2c246d6" }
-merkle_proof     = { version = "0.2.0", default-features = false, git = "https://github.com/synapseweb3/lighthouse", rev = "2c246d6" }
-eth2_ssz_derive  = { git = "https://github.com/synapseweb3/lighthouse", rev = "2c246d6" }
-tree_hash_derive = { git = "https://github.com/synapseweb3/lighthouse", rev = "2c246d6" }
-eth2_types       = { git = "https://github.com/synapseweb3/lighthouse", rev = "2c246d6", package = "types", optional = true }
+bls              = { version = "0.2.0", default-features = false, git = "https://github.com/synapseweb3/lighthouse", rev = "be911e6" }
+eth2_hashing     = { version = "0.3.0", default-features = false, git = "https://github.com/synapseweb3/lighthouse", rev = "be911e6" }
+eth2_ssz         = { version = "0.4.1", default-features = false, git = "https://github.com/synapseweb3/lighthouse", rev = "be911e6" }
+eth2_ssz_types   = { version = "0.2.2", default-features = false, git = "https://github.com/synapseweb3/lighthouse", rev = "be911e6" }
+tree_hash        = { version = "0.4.1", default-features = false, git = "https://github.com/synapseweb3/lighthouse", rev = "be911e6" }
+merkle_proof     = { version = "0.2.0", default-features = false, git = "https://github.com/synapseweb3/lighthouse", rev = "be911e6" }
+eth2_ssz_derive  = { git = "https://github.com/synapseweb3/lighthouse", rev = "be911e6" }
+tree_hash_derive = { git = "https://github.com/synapseweb3/lighthouse", rev = "be911e6" }
+eth2_types       = { git = "https://github.com/synapseweb3/lighthouse", rev = "be911e6", package = "types", optional = true }
 log              = { version = "0.4.17", optional = true }
+faster-hex       = { version = "0.6.1", optional = true }
 
 [dev-dependencies]
 eth_light_client_in_ckb-prover = { version = "0.3.0-alpha", path = "../prover" }
@@ -36,6 +39,13 @@ std = [
     "molecule/std",
     "ckb-mmr/std",
     "rlp/std",
+    "ethereum-types/std",
+    "bls/std",
+    "bls/supranational",
     "eth2_types",
-    "log"
+    "log",
+    "faster-hex"
+]
+ckb-vm = [
+    "bls/ckb-vm"
 ]

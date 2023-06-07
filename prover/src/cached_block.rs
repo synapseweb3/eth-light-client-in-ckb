@@ -1,14 +1,14 @@
-use eth2_types::{BeaconBlock, EthSpec, ExecPayload as _, Slot, Transaction};
+use eth2_types::{BeaconBlock, EthSpec, ExecPayload as _, MainnetEthSpec, Slot, Transaction};
 use merkle_proof::MerkleTree;
 use tree_hash::{Hash256, TreeHash};
 
-use eth_light_client_in_ckb_verification::{consensus_specs as specs, ssz};
+use eth_light_client_in_ckb_verification::{
+    consensus_specs::{forks, helpers},
+    utilities::ssz,
+};
 
 #[derive(Clone)]
-pub struct CachedBeaconBlock<T>
-where
-    T: EthSpec,
-{
+pub struct CachedBeaconBlock {
     body_root: Hash256,
     randao_reveal_root: Hash256,
     eth1_data_root: Hash256,
@@ -44,14 +44,11 @@ where
     withdrawals_root: Option<Hash256>,
     bls_to_execution_changes_root: Option<Hash256>,
 
-    original: BeaconBlock<T>,
+    original: BeaconBlock<MainnetEthSpec>,
 }
 
-impl<T> From<BeaconBlock<T>> for CachedBeaconBlock<T>
-where
-    T: EthSpec,
-{
-    fn from(block: BeaconBlock<T>) -> Self {
+impl From<BeaconBlock<MainnetEthSpec>> for CachedBeaconBlock {
+    fn from(block: BeaconBlock<MainnetEthSpec>) -> Self {
         let body = block.body();
         let payload = body.execution_payload().unwrap();
         let payload_header = payload.to_execution_payload_header();
@@ -61,7 +58,8 @@ where
             .iter()
             .map(|tx| tx.tree_hash_root())
             .collect::<Vec<_>>();
-        let transactions_depth = ssz::ceil_depth(T::max_transactions_per_payload()) as usize;
+        let transactions_depth =
+            ssz::ceil_depth(MainnetEthSpec::max_transactions_per_payload()) as usize;
         let transactions_data_root =
             MerkleTree::create(&transaction_hashes, transactions_depth).hash();
 
@@ -111,11 +109,8 @@ where
     }
 }
 
-impl<T> CachedBeaconBlock<T>
-where
-    T: EthSpec,
-{
-    pub fn original(&self) -> &BeaconBlock<T> {
+impl CachedBeaconBlock {
+    pub fn original(&self) -> &BeaconBlock<MainnetEthSpec> {
         &self.original
     }
 
@@ -144,7 +139,7 @@ where
     pub fn transaction(
         &self,
         index: usize,
-    ) -> Option<Transaction<<T as EthSpec>::MaxBytesPerTransaction>> {
+    ) -> Option<Transaction<<MainnetEthSpec as EthSpec>::MaxBytesPerTransaction>> {
         self.original
             .body()
             .execution_payload()
@@ -203,22 +198,21 @@ where
             self.block_hash_root,
             self.transactions_root,
         ];
-        let (depth, field_index) = if self.slot()
-            < specs::helpers::compute_start_slot_at_epoch(specs::capella::FORK_EPOCH)
-        {
-            use specs::bellatrix::containers;
-            assert_eq!(leaves.len(), containers::EXECUTION_PAYLOAD_FIELDS_COUNT);
-            let depth = containers::EXECUTION_PAYLOAD_DEPTH as usize;
-            let field_index = containers::TRANSACTIONS_IN_EXECUTION_PAYLOAD_INDEX;
-            (depth, field_index)
-        } else {
-            use specs::capella::containers;
-            leaves.push(self.withdrawals_root.unwrap());
-            assert_eq!(leaves.len(), containers::EXECUTION_PAYLOAD_FIELDS_COUNT);
-            let depth = containers::EXECUTION_PAYLOAD_DEPTH as usize;
-            let field_index = containers::TRANSACTIONS_IN_EXECUTION_PAYLOAD_INDEX;
-            (depth, field_index)
-        };
+        let (depth, field_index) =
+            if self.slot() < helpers::compute_start_slot_at_epoch(forks::capella::FORK_EPOCH) {
+                use forks::bellatrix::containers;
+                assert_eq!(leaves.len(), containers::EXECUTION_PAYLOAD_FIELDS_COUNT);
+                let depth = containers::EXECUTION_PAYLOAD_DEPTH as usize;
+                let field_index = containers::TRANSACTIONS_IN_EXECUTION_PAYLOAD_INDEX;
+                (depth, field_index)
+            } else {
+                use forks::capella::containers;
+                leaves.push(self.withdrawals_root.unwrap());
+                assert_eq!(leaves.len(), containers::EXECUTION_PAYLOAD_FIELDS_COUNT);
+                let depth = containers::EXECUTION_PAYLOAD_DEPTH as usize;
+                let field_index = containers::TRANSACTIONS_IN_EXECUTION_PAYLOAD_INDEX;
+                (depth, field_index)
+            };
         let tree = MerkleTree::create(&leaves, depth);
         let (_, fields_proof) = tree.generate_proof(field_index, depth).unwrap();
         proof.extend(fields_proof);
@@ -239,22 +233,21 @@ where
             self.sync_aggregate_root,
             self.execution_payload_root,
         ];
-        let (depth, field_index) = if self.slot()
-            < specs::helpers::compute_start_slot_at_epoch(specs::capella::FORK_EPOCH)
-        {
-            use specs::bellatrix::containers;
-            assert_eq!(leaves.len(), containers::BLOCK_BODY_FIELDS_COUNT);
-            let depth = containers::BLOCK_BODY_DEPTH as usize;
-            let field_index = containers::EXECUTION_PAYLOAD_IN_BLOCK_BODY_INDEX;
-            (depth, field_index)
-        } else {
-            use specs::capella::containers;
-            leaves.push(self.bls_to_execution_changes_root.unwrap());
-            assert_eq!(leaves.len(), containers::BLOCK_BODY_FIELDS_COUNT);
-            let depth = containers::BLOCK_BODY_DEPTH as usize;
-            let field_index = containers::EXECUTION_PAYLOAD_IN_BLOCK_BODY_INDEX;
-            (depth, field_index)
-        };
+        let (depth, field_index) =
+            if self.slot() < helpers::compute_start_slot_at_epoch(forks::capella::FORK_EPOCH) {
+                use forks::bellatrix::containers;
+                assert_eq!(leaves.len(), containers::BLOCK_BODY_FIELDS_COUNT);
+                let depth = containers::BLOCK_BODY_DEPTH as usize;
+                let field_index = containers::EXECUTION_PAYLOAD_IN_BLOCK_BODY_INDEX;
+                (depth, field_index)
+            } else {
+                use forks::capella::containers;
+                leaves.push(self.bls_to_execution_changes_root.unwrap());
+                assert_eq!(leaves.len(), containers::BLOCK_BODY_FIELDS_COUNT);
+                let depth = containers::BLOCK_BODY_DEPTH as usize;
+                let field_index = containers::EXECUTION_PAYLOAD_IN_BLOCK_BODY_INDEX;
+                (depth, field_index)
+            };
         let tree = MerkleTree::create(&leaves, depth);
         let (_, fields_proof) = tree.generate_proof(field_index, depth).unwrap();
         proof.extend(fields_proof);
@@ -278,22 +271,21 @@ where
             self.block_hash_root,
             self.transactions_root,
         ];
-        let (depth, field_index) = if self.slot()
-            < specs::helpers::compute_start_slot_at_epoch(specs::capella::FORK_EPOCH)
-        {
-            use specs::bellatrix::containers;
-            assert_eq!(leaves.len(), containers::EXECUTION_PAYLOAD_FIELDS_COUNT);
-            let depth = containers::EXECUTION_PAYLOAD_DEPTH as usize;
-            let field_index = containers::RECEIPTS_ROOT_IN_EXECUTION_PAYLOAD_INDEX;
-            (depth, field_index)
-        } else {
-            use specs::capella::containers;
-            leaves.push(self.withdrawals_root.unwrap());
-            assert_eq!(leaves.len(), containers::EXECUTION_PAYLOAD_FIELDS_COUNT);
-            let depth = containers::EXECUTION_PAYLOAD_DEPTH as usize;
-            let field_index = containers::RECEIPTS_ROOT_IN_EXECUTION_PAYLOAD_INDEX;
-            (depth, field_index)
-        };
+        let (depth, field_index) =
+            if self.slot() < helpers::compute_start_slot_at_epoch(forks::capella::FORK_EPOCH) {
+                use forks::bellatrix::containers;
+                assert_eq!(leaves.len(), containers::EXECUTION_PAYLOAD_FIELDS_COUNT);
+                let depth = containers::EXECUTION_PAYLOAD_DEPTH as usize;
+                let field_index = containers::RECEIPTS_ROOT_IN_EXECUTION_PAYLOAD_INDEX;
+                (depth, field_index)
+            } else {
+                use forks::capella::containers;
+                leaves.push(self.withdrawals_root.unwrap());
+                assert_eq!(leaves.len(), containers::EXECUTION_PAYLOAD_FIELDS_COUNT);
+                let depth = containers::EXECUTION_PAYLOAD_DEPTH as usize;
+                let field_index = containers::RECEIPTS_ROOT_IN_EXECUTION_PAYLOAD_INDEX;
+                (depth, field_index)
+            };
 
         let tree = MerkleTree::create(&leaves, depth);
         let (_, proof) = tree.generate_proof(field_index, depth).unwrap();
@@ -314,22 +306,21 @@ where
             self.sync_aggregate_root,
             self.execution_payload_root,
         ];
-        let (depth, field_index) = if self.slot()
-            < specs::helpers::compute_start_slot_at_epoch(specs::capella::FORK_EPOCH)
-        {
-            use specs::bellatrix::containers;
-            assert_eq!(leaves.len(), containers::BLOCK_BODY_FIELDS_COUNT);
-            let depth = containers::BLOCK_BODY_DEPTH as usize;
-            let field_index = containers::EXECUTION_PAYLOAD_IN_BLOCK_BODY_INDEX;
-            (depth, field_index)
-        } else {
-            use specs::capella::containers;
-            leaves.push(self.bls_to_execution_changes_root.unwrap());
-            assert_eq!(leaves.len(), containers::BLOCK_BODY_FIELDS_COUNT);
-            let depth = containers::BLOCK_BODY_DEPTH as usize;
-            let field_index = containers::EXECUTION_PAYLOAD_IN_BLOCK_BODY_INDEX;
-            (depth, field_index)
-        };
+        let (depth, field_index) =
+            if self.slot() < helpers::compute_start_slot_at_epoch(forks::capella::FORK_EPOCH) {
+                use forks::bellatrix::containers;
+                assert_eq!(leaves.len(), containers::BLOCK_BODY_FIELDS_COUNT);
+                let depth = containers::BLOCK_BODY_DEPTH as usize;
+                let field_index = containers::EXECUTION_PAYLOAD_IN_BLOCK_BODY_INDEX;
+                (depth, field_index)
+            } else {
+                use forks::capella::containers;
+                leaves.push(self.bls_to_execution_changes_root.unwrap());
+                assert_eq!(leaves.len(), containers::BLOCK_BODY_FIELDS_COUNT);
+                let depth = containers::BLOCK_BODY_DEPTH as usize;
+                let field_index = containers::EXECUTION_PAYLOAD_IN_BLOCK_BODY_INDEX;
+                (depth, field_index)
+            };
         let tree = MerkleTree::create(&leaves, depth);
         let (_, fields_proof) = tree.generate_proof(field_index, depth).unwrap();
         proof.extend(fields_proof);

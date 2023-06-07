@@ -1,6 +1,7 @@
+use bls::{PUBLIC_KEY_BYTES_LEN, SIGNATURE_BYTES_LEN};
 use molecule::prelude::*;
 
-use crate::types::{core, packed, prelude::*};
+use crate::types::{core, packed, prelude::Unpack};
 
 macro_rules! impl_conversion_for_entity_unpack {
     ($name:ident) => {
@@ -65,6 +66,33 @@ impl<'r> Unpack<core::MmrProof> for packed::MmrProofReader<'r> {
 }
 impl_conversion_for_entity_unpack!(MmrProof);
 
+impl<'r> Unpack<core::BlsPubkey> for packed::BlsPubkeyReader<'r> {
+    fn unpack(&self) -> core::BlsPubkey {
+        assert_eq!(self.as_slice().len(), PUBLIC_KEY_BYTES_LEN);
+        let mut b = [0u8; PUBLIC_KEY_BYTES_LEN];
+        b.copy_from_slice(self.as_slice());
+        b.into()
+    }
+}
+impl_conversion_for_entity_unpack!(BlsPubkey);
+
+impl<'r> Unpack<core::BlsSignature> for packed::BlsSignatureReader<'r> {
+    fn unpack(&self) -> core::BlsSignature {
+        assert_eq!(self.as_slice().len(), SIGNATURE_BYTES_LEN);
+        let mut b = [0u8; SIGNATURE_BYTES_LEN];
+        b.copy_from_slice(self.as_slice());
+        b.into()
+    }
+}
+impl_conversion_for_entity_unpack!(BlsSignature);
+
+impl<'r> Unpack<core::BlsPubkeyVec> for packed::BlsPubkeyVecReader<'r> {
+    fn unpack(&self) -> core::BlsPubkeyVec {
+        self.iter().map(|v| v.unpack()).collect()
+    }
+}
+impl_conversion_for_entity_unpack!(BlsPubkeyVec);
+
 impl<'r> Unpack<core::Header> for packed::HeaderReader<'r> {
     fn unpack(&self) -> core::Header {
         core::Header {
@@ -85,16 +113,68 @@ impl<'r> Unpack<core::HeaderVec> for packed::HeaderVecReader<'r> {
 }
 impl_conversion_for_entity_unpack!(HeaderVec);
 
-impl<'r> Unpack<core::ProofUpdate> for packed::ProofUpdateReader<'r> {
-    fn unpack(&self) -> core::ProofUpdate {
-        core::ProofUpdate {
-            new_headers_mmr_root: self.new_headers_mmr_root().unpack(),
-            new_headers_mmr_proof: self.new_headers_mmr_proof().unpack(),
-            updates: self.updates().unpack(),
+impl<'r> Unpack<core::SyncCommitteeBits> for packed::SyncCommitteeBitsReader<'r> {
+    fn unpack(&self) -> core::SyncCommitteeBits {
+        core::SyncCommitteeBits::from_slice(self.as_slice())
+    }
+}
+impl_conversion_for_entity_unpack!(SyncCommitteeBits);
+
+impl<'r> Unpack<core::SyncAggregate> for packed::SyncAggregateReader<'r> {
+    fn unpack(&self) -> core::SyncAggregate {
+        core::SyncAggregate {
+            sync_committee_bits: self.sync_committee_bits().unpack(),
+            sync_committee_signature: self.sync_committee_signature().unpack(),
         }
     }
 }
-impl_conversion_for_entity_unpack!(ProofUpdate);
+impl_conversion_for_entity_unpack!(SyncAggregate);
+
+impl<'r> Unpack<core::SyncCommittee> for packed::SyncCommitteeReader<'r> {
+    fn unpack(&self) -> core::SyncCommittee {
+        core::SyncCommittee {
+            pubkeys: self.pubkeys().unpack(),
+            aggregate_pubkey: self.aggregate_pubkey().unpack(),
+        }
+    }
+}
+impl_conversion_for_entity_unpack!(SyncCommittee);
+
+impl<'r> Unpack<core::ClientBootstrap> for packed::ClientBootstrapReader<'r> {
+    fn unpack(&self) -> core::ClientBootstrap {
+        core::ClientBootstrap {
+            header: self.header().unpack(),
+            current_sync_committee_branch: self.current_sync_committee_branch().unpack(),
+        }
+    }
+}
+impl_conversion_for_entity_unpack!(ClientBootstrap);
+
+impl<'r> Unpack<core::ClientUpdate> for packed::ClientUpdateReader<'r> {
+    fn unpack(&self) -> core::ClientUpdate {
+        core::ClientUpdate {
+            attested_header: self.attested_header().unpack(),
+            finality_branch: self.finality_branch().unpack(),
+            sync_aggregate: self.sync_aggregate().unpack(),
+            signature_slot: self.signature_slot().unpack(),
+            new_headers_mmr_proof: self.new_headers_mmr_proof().unpack(),
+            headers: self.headers().unpack(),
+        }
+    }
+}
+impl_conversion_for_entity_unpack!(ClientUpdate);
+
+impl<'r> Unpack<core::SyncCommitteeUpdate> for packed::SyncCommitteeUpdateReader<'r> {
+    fn unpack(&self) -> core::SyncCommitteeUpdate {
+        core::SyncCommitteeUpdate {
+            attested_header: self.attested_header().unpack(),
+            next_sync_committee_branch: self.next_sync_committee_branch().unpack(),
+            sync_aggregate: self.sync_aggregate().unpack(),
+            signature_slot: self.signature_slot().unpack(),
+        }
+    }
+}
+impl_conversion_for_entity_unpack!(SyncCommitteeUpdate);
 
 impl<'r> Unpack<core::TransactionProof> for packed::TransactionProofReader<'r> {
     fn unpack(&self) -> core::TransactionProof {
@@ -124,8 +204,9 @@ impl_conversion_for_entity_unpack!(TransactionPayload);
 impl<'r> Unpack<core::ClientInfo> for packed::ClientInfoReader<'r> {
     fn unpack(&self) -> core::ClientInfo {
         core::ClientInfo {
-            last_id: self.last_id().into(),
-            minimal_updates_count: self.minimal_updates_count().into(),
+            last_client_id: self.last_client_id().into(),
+            minimal_headers_count: self.minimal_headers_count().into(),
+            genesis_validators_root: self.genesis_validators_root().unpack(),
         }
     }
 }
@@ -137,18 +218,28 @@ impl<'r> Unpack<core::Client> for packed::ClientReader<'r> {
             id: self.id().into(),
             minimal_slot: self.minimal_slot().unpack(),
             maximal_slot: self.maximal_slot().unpack(),
-            tip_valid_header_root: self.tip_valid_header_root().unpack(),
+            tip_header_root: self.tip_header_root().unpack(),
             headers_mmr_root: self.headers_mmr_root().unpack(),
         }
     }
 }
 impl_conversion_for_entity_unpack!(Client);
 
+impl<'r> Unpack<core::ClientSyncCommittee> for packed::ClientSyncCommitteeReader<'r> {
+    fn unpack(&self) -> core::ClientSyncCommittee {
+        core::ClientSyncCommittee {
+            period: self.period().unpack(),
+            data: self.data().unpack(),
+        }
+    }
+}
+impl_conversion_for_entity_unpack!(ClientSyncCommittee);
+
 impl<'r> Unpack<core::ClientTypeArgs> for packed::ClientTypeArgsReader<'r> {
     fn unpack(&self) -> core::ClientTypeArgs {
         core::ClientTypeArgs {
             type_id: self.type_id().unpack(),
-            cells_count: self.cells_count().into(),
+            clients_count: self.clients_count().into(),
         }
     }
 }
