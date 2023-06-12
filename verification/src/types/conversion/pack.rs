@@ -68,19 +68,9 @@ impl Pack<packed::Header> for core::Header {
     }
 }
 
-impl Pack<packed::FinalityUpdate> for core::FinalityUpdate {
-    fn pack(&self) -> packed::FinalityUpdate {
-        packed::FinalityUpdate::new_builder()
-            .attested_header(self.attested_header.pack())
-            .finalized_header(self.finalized_header.pack())
-            .finality_branch(self.finality_branch.pack())
-            .build()
-    }
-}
-
-impl Pack<packed::FinalityUpdateVec> for core::FinalityUpdateVec {
-    fn pack(&self) -> packed::FinalityUpdateVec {
-        packed::FinalityUpdateVec::new_builder()
+impl Pack<packed::HeaderVec> for core::HeaderVec {
+    fn pack(&self) -> packed::HeaderVec {
+        packed::HeaderVec::new_builder()
             .set(self.iter().map(|v| v.pack()).collect())
             .build()
     }
@@ -90,7 +80,6 @@ impl Pack<packed::ProofUpdate> for core::ProofUpdate {
     fn pack(&self) -> packed::ProofUpdate {
         packed::ProofUpdate::new_builder()
             .new_headers_mmr_root(self.new_headers_mmr_root.pack())
-            .next_committee_ssz_proof(self.next_committee_ssz_proof.pack())
             .new_headers_mmr_proof(self.new_headers_mmr_proof.pack())
             .updates(self.updates.pack())
             .build()

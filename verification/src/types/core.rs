@@ -29,21 +29,13 @@ pub struct Header {
     pub body_root: Hash,
 }
 
-#[derive(Clone)]
-pub struct FinalityUpdate {
-    pub attested_header: Header,
-    pub finalized_header: Header,
-    pub finality_branch: SszProof,
-}
-
-pub type FinalityUpdateVec = Vec<FinalityUpdate>;
+pub type HeaderVec = Vec<Header>;
 
 #[derive(Clone)]
 pub struct ProofUpdate {
     pub new_headers_mmr_root: HeaderDigest,
-    pub next_committee_ssz_proof: SszProof,
     pub new_headers_mmr_proof: MmrProof,
-    pub updates: FinalityUpdateVec,
+    pub updates: HeaderVec,
 }
 
 #[derive(Clone)]

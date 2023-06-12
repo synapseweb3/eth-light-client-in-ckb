@@ -309,17 +309,8 @@ fn new_client(param: NewClientParameter) {
     }
     .pack();
 
-    let updates_items = packed_headers
-        .into_iter()
-        .map(|header| {
-            packed::FinalityUpdate::new_builder()
-                .finalized_header(header)
-                .build()
-        })
-        .collect::<Vec<_>>();
-    let updates = packed::FinalityUpdateVec::new_builder()
-        .set(updates_items)
-        .build();
+    let updates_items = packed_headers.into_iter().collect::<Vec<_>>();
+    let updates = packed::HeaderVec::new_builder().set(updates_items).build();
 
     let packed_proof_update = packed::ProofUpdate::new_builder()
         .new_headers_mmr_root(headers_mmr_root)
@@ -365,9 +356,7 @@ fn proof_update(param: ProofUpdateParameter) {
         if let Some(total_count) = param.total_count_opt {
             header_json_files.truncate(total_count);
         }
-        let split_at = param
-            .split_at_opt
-            .unwrap_or_else(|| header_json_files.len() / 2);
+        let split_at = param.split_at_opt.unwrap_or(header_json_files.len() / 2);
         let mut headers = header_json_files
             .into_iter()
             .map(load_beacon_block_header_from_json_or_create_default)
@@ -458,17 +447,8 @@ fn proof_update(param: ProofUpdateParameter) {
     }
     .pack();
 
-    let updates_items = packed_headers
-        .into_iter()
-        .map(|header| {
-            packed::FinalityUpdate::new_builder()
-                .finalized_header(header)
-                .build()
-        })
-        .collect::<Vec<_>>();
-    let updates = packed::FinalityUpdateVec::new_builder()
-        .set(updates_items)
-        .build();
+    let updates_items = packed_headers.into_iter().collect::<Vec<_>>();
+    let updates = packed::HeaderVec::new_builder().set(updates_items).build();
 
     let packed_proof_update = packed::ProofUpdate::new_builder()
         .new_headers_mmr_root(new_headers_mmr_root)

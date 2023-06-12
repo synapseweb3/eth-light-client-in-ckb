@@ -129,7 +129,6 @@ impl DemoCache {
 #[test]
 fn test_verify_merkle_proof() {
     let d_vec = (0u8..=10)
-        .into_iter()
         .map(|i| VariableList::from(vec![i, i + 1, i * 2]))
         .collect::<Vec<_>>();
     let d_vec_len = d_vec.len();
