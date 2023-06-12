@@ -88,7 +88,7 @@ fn test_transaction_verification(case_id: usize) {
 
     for (header, block) in headers
         .into_iter()
-        .filter(|ref header| {
+        .filter(|header| {
             let header: core::Header = packed::Header::from_ssz_header(header).unpack();
             !header.is_empty()
         })
@@ -144,7 +144,7 @@ fn test_transaction_verification(case_id: usize) {
             let proof = core::TransactionProof {
                 header: header.clone(),
                 transaction_index: index as u64,
-                receipts_root: receipts_root,
+                receipts_root,
                 header_mmr_proof: header_mmr_proof.clone(),
                 transaction_ssz_proof,
                 receipt_mpt_proof,

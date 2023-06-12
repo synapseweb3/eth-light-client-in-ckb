@@ -356,9 +356,7 @@ fn proof_update(param: ProofUpdateParameter) {
         if let Some(total_count) = param.total_count_opt {
             header_json_files.truncate(total_count);
         }
-        let split_at = param
-            .split_at_opt
-            .unwrap_or_else(|| header_json_files.len() / 2);
+        let split_at = param.split_at_opt.unwrap_or(header_json_files.len() / 2);
         let mut headers = header_json_files
             .into_iter()
             .map(load_beacon_block_header_from_json_or_create_default)
