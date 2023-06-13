@@ -1,27 +1,30 @@
+//! The utilities for [Merkle Mountain Ranges (MMR)].
+//!
+//! [Merkle Mountain Ranges (MMR)]: https://github.com/opentimestamps/opentimestamps-server/blob/master/doc/merkle-mountain-range.md
+
+use ::core::cmp::PartialEq;
 #[cfg(feature = "std")]
 use alloc::fmt;
-use core::cmp::PartialEq;
 
 use ckb_mmr::{Merge, MerkleProof, Result as MMRResult, MMR};
 use eth2_hashing::{hash32_concat, hash_fixed, HASH_LEN};
-#[cfg(feature = "std")]
-use eth2_types::{BeaconBlockHeader, Slot};
 use tree_hash::{Hash256, TreeHash as _};
 
-use crate::types::{core::Header, packed, prelude::*};
+use crate::types::{core, packed, prelude::*};
 
 pub use ckb_mmr as lib;
 
-/// A struct to implement MMR `Merge` trait
+/// A struct to implement MMR `Merge` trait.
 pub struct MergeHeaderDigest;
-/// MMR root
+/// MMR root.
 pub type ClientRootMMR<S> = MMR<packed::HeaderDigest, MergeHeaderDigest, S>;
-/// MMR proof
+/// MMR proof.
 pub type MMRProof = MerkleProof<packed::HeaderDigest, MergeHeaderDigest>;
 
-// Header with the cached root.
+/// Header with the cached root.
+#[derive(Clone)]
 pub struct HeaderWithCache {
-    pub inner: Header,
+    pub inner: core::Header,
     pub root: Hash256,
 }
 
@@ -54,66 +57,44 @@ impl fmt::Display for HeaderWithCache {
     }
 }
 
-impl Header {
+impl core::Header {
+    /// Calculates the root of a header and caches the root.
     pub fn calc_cache(self) -> HeaderWithCache {
         let root = self.tree_hash_root();
         HeaderWithCache { inner: self, root }
     }
-
-    pub fn is_empty(&self) -> bool {
-        self.proposer_index == 0
-            && self.parent_root.is_zero()
-            && self.state_root.is_zero()
-            && self.body_root.is_zero()
-    }
 }
 
 impl HeaderWithCache {
-    pub fn digest(&self) -> packed::HeaderDigest {
+    /// Builds a `HeaderDigest`.
+    pub fn digest(&self) -> core::HeaderDigest {
+        core::HeaderDigest {
+            children_hash: self.root,
+        }
+    }
+
+    /// Builds a packed `HeaderDigest` as MMR node.
+    pub fn packed_digest(&self) -> packed::HeaderDigest {
         packed::HeaderDigest::new_builder()
             .children_hash(self.root.pack())
             .build()
     }
 
+    /// Checks if a header is empty.
     pub fn is_empty(&self) -> bool {
         self.inner.is_empty()
     }
 }
 
-impl<'r> packed::HeaderReader<'r> {
-    #[cfg(feature = "std")]
-    pub fn to_ssz_header(&self) -> BeaconBlockHeader {
-        BeaconBlockHeader {
-            slot: Slot::new(self.slot().unpack()),
-            proposer_index: self.proposer_index().unpack(),
-            parent_root: self.parent_root().unpack(),
-            state_root: self.state_root().unpack(),
-            body_root: self.body_root().unpack(),
-        }
-    }
-}
-
-impl packed::Header {
-    #[cfg(feature = "std")]
-    pub fn from_ssz_header(header: &BeaconBlockHeader) -> Self {
-        let slot: u64 = header.slot.into();
-        packed::Header::new_builder()
-            .slot(slot.pack())
-            .proposer_index(header.proposer_index.pack())
-            .parent_root(header.parent_root.pack())
-            .state_root(header.state_root.pack())
-            .body_root(header.body_root.pack())
-            .build()
-    }
-}
-
 impl<'r> packed::HeaderDigestReader<'r> {
+    /// Calculates the MMR hash root for the current MMR node.
     pub fn calc_mmr_hash(&self) -> [u8; HASH_LEN] {
         hash_fixed(self.as_slice())
     }
 }
 
 impl packed::HeaderDigest {
+    /// Calculates the MMR hash root for the current MMR node.
     pub fn calc_mmr_hash(&self) -> [u8; HASH_LEN] {
         self.as_reader().calc_mmr_hash()
     }

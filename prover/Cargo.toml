@@ -13,6 +13,6 @@ eth_light_client_in_ckb-verification = { version = "0.3.0-alpha", path = "../ver
 ethers-core = "2.0.2"
 cita_trie = "4.0.0"
 hasher = "0.1.4"
-eth2_types       = { git = "https://github.com/synapseweb3/lighthouse", rev = "2c246d6", package = "types" }
-tree_hash        = { git = "https://github.com/synapseweb3/lighthouse", rev = "2c246d6" }
-merkle_proof     = { git = "https://github.com/synapseweb3/lighthouse", rev = "2c246d6" }
+eth2_types       = { git = "https://github.com/synapseweb3/lighthouse", rev = "be911e6", package = "types" }
+tree_hash        = { git = "https://github.com/synapseweb3/lighthouse", rev = "be911e6" }
+merkle_proof     = { git = "https://github.com/synapseweb3/lighthouse", rev = "be911e6" }

@@ -1,0 +1,17 @@
+{
+  "execution_optimistic": false,
+  "data": {
+    "root": "0x8d997780ecb4b634e0367f961d8adffeebfb6f43c1aaf43e0bb6d3578ece8d18",
+    "canonical": true,
+    "header": {
+      "message": {
+        "slot": "6632738",
+        "proposer_index": "190489",
+        "parent_root": "0x7f37d40b87ba33e2111921293593037b73062bb78073e62419b534d16942ea75",
+        "state_root": "0xc1f70ae6d7a7c5083194471c86ca7eb78ff5de96206e12117b250be2c5ae41d2",
+        "body_root": "0xaeefe3e173206a6291d7080f3b4f3a02842578b9c6d18117c6d0b236877383a5"
+      },
+      "signature": "0xb7ca89f426a8a59982de78778a91ef90fa59a42a602889cfc867f660a5302b8fdaa4b0186dfa69ed06582d9469f99971186f05925e6ce38a10eba563b690b088d4eabcf253f63a93da9284f16e329c14721fde0b767cc4fd600ffe4ac784ca05"
+    }
+  }
+}

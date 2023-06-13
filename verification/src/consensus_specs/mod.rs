@@ -6,10 +6,8 @@
 #[macro_use]
 pub mod macros;
 
-pub mod phase0;
-
-pub mod altair;
-pub mod bellatrix;
-pub mod capella;
-
+pub mod forks;
 pub mod helpers;
+
+mod internal;
+pub use internal::*;
