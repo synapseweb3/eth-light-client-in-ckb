@@ -1,4 +1,4 @@
-use std::fs::read_to_string;
+use std::fs;
 
 use eth2_types::{light_client_bootstrap::PatchedLightClientBootstrap, MainnetEthSpec};
 use eth_light_client_in_ckb_prover::LightClientBootstrap;
@@ -7,7 +7,12 @@ use eth_light_client_in_ckb_verification::types::prelude::*;
 use crate::{find_json_files, setup};
 
 #[test]
-fn test_client_bootstraps() {
+fn mainnet_testcase_client_bootstraps() {
+    let dump_dir_opt = None;
+    client_bootstrap(dump_dir_opt);
+}
+
+fn client_bootstrap(dump_dir_opt: Option<&'static str>) {
     setup();
 
     let case_dir = "mainnet/light_client/bootstrap";
@@ -16,7 +21,7 @@ fn test_client_bootstraps() {
     let bootstraps = json_files
         .into_iter()
         .map(|file| {
-            let json_str = read_to_string(file).unwrap();
+            let json_str = fs::read_to_string(file).unwrap();
             let json_value: serde_json::Value = serde_json::from_str(&json_str).unwrap();
             let bootstrap: PatchedLightClientBootstrap<MainnetEthSpec> =
                 serde_json::from_value(json_value["data"].clone()).unwrap();
@@ -25,7 +30,7 @@ fn test_client_bootstraps() {
         .collect::<Vec<LightClientBootstrap>>();
 
     for bootstrap in bootstraps {
-        let slot = bootstrap.slot();
+        let slot: u64 = bootstrap.slot().into();
 
         let client_bootstrap = bootstrap.build_client_bootstrap();
         let packed_client_sync_committee = bootstrap.build_client_sync_committee().pack();
@@ -43,5 +48,23 @@ fn test_client_bootstraps() {
             packed_client.as_slice(),
             "failed to verify client (slot: {slot})"
         );
+
+        if let Some(dump_dir) = dump_dir_opt {
+            let client_bootstrap_filepath = format!("{dump_dir}/client_bootstrap-{slot:09}.data");
+            let packed_client_bootstrap = client_bootstrap.pack();
+            fs::write(
+                client_bootstrap_filepath,
+                packed_client_bootstrap.as_slice(),
+            )
+            .unwrap();
+            let client_filepath = format!("{dump_dir}/client-{slot:09}_{slot:09}.data");
+            fs::write(client_filepath, packed_client.as_slice()).unwrap();
+            let sync_committee_filepath = format!("{dump_dir}/sync_committee-{slot:09}.data");
+            fs::write(
+                sync_committee_filepath,
+                packed_client_sync_committee.as_slice(),
+            )
+            .unwrap();
+        }
     }
 }

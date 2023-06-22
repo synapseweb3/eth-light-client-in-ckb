@@ -1,4 +1,4 @@
-use std::fs::read_to_string;
+use std::fs;
 
 use eth2_types::{
     light_client_bootstrap::PatchedLightClientBootstrap,
@@ -10,31 +10,36 @@ use ethers_core::types::TransactionReceipt;
 
 use crate::{find_json_file, setup, types::load_beacon_block_header_from_json_or_create_default};
 
+#[test]
+fn mainnet_testcase_in_capella() {
+    let param = Parameter {
+        bootstrap_slot: 6632736,
+        finalized_slots: vec![6632768, 6632800, 6632832, 6632864, 6632896, 6632928],
+        test_blocks: vec![6632854],
+        ..Default::default()
+    };
+    transaction_verification(param);
+}
+
 #[derive(Default)]
 struct Parameter {
     bootstrap_slot: u64,
     finalized_slots: Vec<u64>,
     test_blocks: Vec<u64>,
+    dump_dir_opt: Option<&'static str>,
+    dump_tx_index_opt: Option<usize>,
 }
 
-#[test]
-fn test_case_1() {
-    let param = Parameter {
-        bootstrap_slot: 6632736,
-        finalized_slots: vec![6632768, 6632800, 6632832, 6632864, 6632896, 6632928],
-        test_blocks: vec![6632854],
-    };
-    test_transaction_verification(param);
-}
-
-fn test_transaction_verification(param: Parameter) {
+fn transaction_verification(param: Parameter) {
     setup();
+
+    let mut if_tx_dumped = false;
 
     let mut light_client = {
         let case_dir = "mainnet/light_client/bootstrap";
         let filename = format!("slot-{:09}.json", param.bootstrap_slot);
         let json_file = find_json_file(case_dir, &filename);
-        let json_str = read_to_string(json_file).unwrap();
+        let json_str = fs::read_to_string(json_file).unwrap();
         let json_value: serde_json::Value = serde_json::from_str(&json_str).unwrap();
         let bootstrap: PatchedLightClientBootstrap<MainnetEthSpec> =
             serde_json::from_value(json_value["data"].clone()).unwrap();
@@ -44,9 +49,9 @@ fn test_transaction_verification(param: Parameter) {
     for finalized_slot in param.finalized_slots {
         let finality_update = {
             let case_dir = "mainnet/light_client/finality_update";
-            let filename = format!("slot-{:09}.json", finalized_slot);
+            let filename = format!("slot-{finalized_slot:09}.json");
             let json_file = find_json_file(case_dir, &filename);
-            let json_str = read_to_string(json_file).unwrap();
+            let json_str = fs::read_to_string(json_file).unwrap();
             let json_value: serde_json::Value = serde_json::from_str(&json_str).unwrap();
             let finality_update: PatchedLightClientFinalityUpdate<MainnetEthSpec> =
                 serde_json::from_value(json_value["data"].clone()).unwrap();
@@ -66,9 +71,9 @@ fn test_transaction_verification(param: Parameter) {
 
             let block: CachedBeaconBlock = {
                 let case_dir = "mainnet/beacon/block";
-                let filename = format!("slot-{:09}.json", block_slot);
+                let filename = format!("slot-{block_slot:09}.json");
                 let json_file = find_json_file(case_dir, &filename);
-                let json_str = read_to_string(json_file).unwrap();
+                let json_str = fs::read_to_string(json_file).unwrap();
                 let json_value: serde_json::Value = serde_json::from_str(&json_str).unwrap();
                 let block: BeaconBlock<MainnetEthSpec> =
                     serde_json::from_value(json_value["data"]["message"].clone()).unwrap();
@@ -80,9 +85,9 @@ fn test_transaction_verification(param: Parameter) {
 
             let receipts: Receipts = {
                 let case_dir = "mainnet/execution/block_receipts";
-                let filename = format!("number-{:09}.json", number);
+                let filename = format!("number-{number:09}.json");
                 let json_file = find_json_file(case_dir, &filename);
-                let json_str = read_to_string(json_file).unwrap();
+                let json_str = fs::read_to_string(json_file).unwrap();
                 let json_value: serde_json::Value = serde_json::from_str(&json_str).unwrap();
                 let receipts: Vec<TransactionReceipt> =
                     serde_json::from_value(json_value["result"].clone()).unwrap();
@@ -140,6 +145,29 @@ fn test_transaction_verification(param: Parameter) {
                     number,
                     index
                 );
+
+                if let Some(dump_tx_index) = param.dump_tx_index_opt {
+                    if index == dump_tx_index {
+                        if let Some(dump_dir) = param.dump_dir_opt {
+                            let packed_client = client.pack();
+                            let client_filepath = format!(
+                                "{dump_dir}/client-{:09}_{finalized_slot:09}.data",
+                                param.bootstrap_slot
+                            );
+                            fs::write(client_filepath, packed_client.as_slice()).unwrap();
+                            let proof_filepath = format!(
+                                "{dump_dir}/tx_proof-{slot:09}_{index:03}-{finalized_slot:09}.data"
+                            );
+                            fs::write(proof_filepath, packed_proof.as_slice()).unwrap();
+                            if !if_tx_dumped {
+                                let payload_filepath =
+                                    format!("{dump_dir}/tx_payload-{slot:09}_{index:03}.data");
+                                fs::write(payload_filepath, packed_payload.as_slice()).unwrap();
+                                if_tx_dumped = true;
+                            }
+                        }
+                    }
+                }
             }
         }
     }
