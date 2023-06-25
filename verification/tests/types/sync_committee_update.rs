@@ -1,4 +1,4 @@
-use std::fs::read_to_string;
+use std::fs;
 
 use eth2_types::{
     light_client_bootstrap::PatchedLightClientBootstrap,
@@ -12,31 +12,34 @@ use eth_light_client_in_ckb_verification::{
 
 use crate::{find_json_file, setup, types::load_genesis_validators_root};
 
+#[test]
+fn mainnet_testcase_altair_to_bellatrix() {
+    let param = Parameter {
+        bootstrap_slot: 4612096,
+        count: 6,
+        ..Default::default()
+    };
+    sync_committee_update(param);
+}
+
+#[test]
+fn mainnet_testcase_bellatrix_to_capella() {
+    let param = Parameter {
+        bootstrap_slot: 6184960,
+        count: 6,
+        ..Default::default()
+    };
+    sync_committee_update(param);
+}
+
 #[derive(Default)]
 struct Parameter {
     bootstrap_slot: u64,
     count: usize,
+    dump_dir_opt: Option<&'static str>,
 }
 
-#[test]
-fn test_altair_to_bellatrix() {
-    let param = Parameter {
-        bootstrap_slot: 4612096,
-        count: 6,
-    };
-    test_sync_committee_update(param);
-}
-
-#[test]
-fn test_bellatrix_to_capella() {
-    let param = Parameter {
-        bootstrap_slot: 6184960,
-        count: 6,
-    };
-    test_sync_committee_update(param);
-}
-
-fn test_sync_committee_update(param: Parameter) {
+fn sync_committee_update(param: Parameter) {
     setup();
 
     let genesis_validators_root = load_genesis_validators_root();
@@ -45,7 +48,7 @@ fn test_sync_committee_update(param: Parameter) {
         let case_dir = "mainnet/light_client/bootstrap";
         let filename = format!("slot-{:09}.json", param.bootstrap_slot);
         let json_file = find_json_file(case_dir, &filename);
-        let json_str = read_to_string(json_file).unwrap();
+        let json_str = fs::read_to_string(json_file).unwrap();
         let json_value: serde_json::Value = serde_json::from_str(&json_str).unwrap();
         let bootstrap: PatchedLightClientBootstrap<MainnetEthSpec> =
             serde_json::from_value(json_value["data"].clone()).unwrap();
@@ -58,12 +61,18 @@ fn test_sync_committee_update(param: Parameter) {
     let slots_in_one_period =
         forks::phase0::SLOTS_PER_EPOCH * forks::altair::EPOCHS_PER_SYNC_COMMITTEE_PERIOD;
 
+    if let Some(dump_dir) = param.dump_dir_opt {
+        let sync_committee_filepath =
+            format!("{dump_dir}/sync_committee-{:09}.data", param.bootstrap_slot);
+        fs::write(sync_committee_filepath, current_sync_committee.as_slice()).unwrap();
+    }
+
     for i in 0..param.count {
         let update: LightClientUpdate = {
             let case_dir = "mainnet/light_client/update";
             let filename = format!("period-{:06}.json", current_period);
             let json_file = find_json_file(case_dir, &filename);
-            let json_str = read_to_string(json_file).unwrap();
+            let json_str = fs::read_to_string(json_file).unwrap();
             let json_value: serde_json::Value = serde_json::from_str(&json_str).unwrap();
             let update: PatchedLightClientUpdate<MainnetEthSpec> =
                 serde_json::from_value(json_value[0]["data"].clone()).unwrap();
@@ -95,6 +104,25 @@ fn test_sync_committee_update(param: Parameter) {
                 current-period: {current_period}, client-max-slot: {client_max_slot})",
                 param.bootstrap_slot
             );
+        }
+
+        if let Some(dump_dir) = param.dump_dir_opt {
+            let periods_passed = i + 1;
+            let packed_sync_committee_update = sync_committee_update.pack();
+            let sync_committee_update_filepath = format!(
+                "{dump_dir}/sync_committee_update-{:09}_{periods_passed:02}.data",
+                param.bootstrap_slot,
+            );
+            fs::write(
+                sync_committee_update_filepath,
+                packed_sync_committee_update.as_slice(),
+            )
+            .unwrap();
+            let sync_committee_filepath = format!(
+                "{dump_dir}/sync_committee-{:09}_{periods_passed:02}.data",
+                param.bootstrap_slot,
+            );
+            fs::write(sync_committee_filepath, next_sync_committee.as_slice()).unwrap();
         }
 
         current_period += 1;
