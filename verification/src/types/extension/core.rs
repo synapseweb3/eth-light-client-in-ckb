@@ -297,7 +297,7 @@ impl core::ClientUpdate {
         let mut prev_cached_header: mmr::HeaderWithCache;
         let mut curr_tip_valid_header_root: core::Hash;
         let mut header_mmr_index: u64;
-        let mut digests_with_positions = Vec::with_capacity(headers_count);
+        let mut digests = Vec::with_capacity(headers_count);
 
         // Check First Header with the Old Client
         {
@@ -327,13 +327,12 @@ impl core::ClientUpdate {
 
             header_mmr_index = curr_cached_header.inner.slot - client.minimal_slot;
 
-            let position = leaf_index_to_pos(header_mmr_index);
             trace!(
-                "first header (slot: {}) in MMR on index {header_mmr_index}, position {position}",
+                "first header (slot: {}) in MMR on index {header_mmr_index}",
                 curr_cached_header.inner.slot
             );
             let digest = curr_cached_header.packed_digest();
-            digests_with_positions.push((position, digest));
+            digests.push(digest);
 
             header_mmr_index += 1;
             prev_cached_header = curr_cached_header;
@@ -368,13 +367,12 @@ impl core::ClientUpdate {
                 curr_tip_valid_header_root = curr_cached_header.root;
             }
 
-            let position = leaf_index_to_pos(header_mmr_index);
             trace!(
-                "current header (slot: {}) in MMR on index {header_mmr_index}, position {position}",
+                "current header (slot: {}) in MMR on index {header_mmr_index}",
                 curr_cached_header.inner.slot
             );
             let digest = curr_cached_header.packed_digest();
-            digests_with_positions.push((position, digest));
+            digests.push(digest);
 
             header_mmr_index += 1;
             prev_cached_header = curr_cached_header;
@@ -397,7 +395,11 @@ impl core::ClientUpdate {
                 mmr::MMRProof::new(mmr_size, proof)
             };
             let result = proof
-                .verify(new_client.headers_mmr_root.pack(), digests_with_positions)
+                .verify_incremental(
+                    new_client.headers_mmr_root.pack(),
+                    client.headers_mmr_root.pack(),
+                    digests,
+                )
                 .map_err(|_| ClientUpdateError::MmrError)?;
             if !result {
                 warn!(
