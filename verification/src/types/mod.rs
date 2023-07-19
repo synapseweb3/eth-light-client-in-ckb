@@ -51,7 +51,7 @@ impl core::Client {
         let mut updates_iter = updates.iter();
 
         let mut cached_finalized_headers = Vec::with_capacity(updates_len);
-        let mut digests_with_positions = Vec::with_capacity(updates_len);
+        let mut digests = Vec::with_capacity(updates_len);
         let minimal_slot;
         let mut header_mmr_index;
 
@@ -145,11 +145,10 @@ impl core::Client {
 
                 // TODO verify more, such as BLS
 
-                let position = leaf_index_to_pos(header_mmr_index);
-                trace!("previous header in MMR on index {header_mmr_index}, position {position}");
+                trace!("previous header in MMR on index {header_mmr_index}");
                 let digest = prev_cached_header.digest();
                 cached_finalized_headers.push(prev_cached_header);
-                digests_with_positions.push((position, digest));
+                digests.push(digest);
 
                 header_mmr_index += 1;
                 prev_cached_header = curr_cached_header;
@@ -160,11 +159,10 @@ impl core::Client {
 
         // Handle the last update
         {
-            let position = leaf_index_to_pos(header_mmr_index);
-            trace!("previous header in MMR on index {header_mmr_index}, position {position}");
+            trace!("previous header in MMR on index {header_mmr_index}");
             let digest = prev_cached_header.digest();
             cached_finalized_headers.push(prev_cached_header);
-            digests_with_positions.push((position, digest));
+            digests.push(digest);
         }
 
         // Check MMR Root
@@ -180,12 +178,31 @@ impl core::Client {
                     .collect::<Vec<_>>();
                 mmr::MMRProof::new(mmr_size, proof)
             };
-            let result = proof
-                .verify(
+
+            let result = if let Some(ref client) = prev_client_opt {
+                debug!("check MMR root with prev client: {client}");
+                proof.verify_incremental(
+                    packed_proof_update.new_headers_mmr_root().to_entity(),
+                    client.headers_mmr_root.pack(),
+                    digests,
+                )
+            } else {
+                debug!("check MMR root without prev client");
+                let digests_with_positions = digests
+                    .into_iter()
+                    .fold((0u64, Vec::new()), |(index, mut vec), digest| {
+                        let position = leaf_index_to_pos(index);
+                        vec.push((position, digest));
+                        (index + 1, vec)
+                    })
+                    .1;
+                proof.verify(
                     packed_proof_update.new_headers_mmr_root().to_entity(),
                     digests_with_positions,
                 )
-                .map_err(|_| ProofUpdateError::Other)?;
+            }
+            .map_err(|_| ProofUpdateError::Other)?;
+
             if !result {
                 return Err(ProofUpdateError::HeadersMmrProof);
             }
