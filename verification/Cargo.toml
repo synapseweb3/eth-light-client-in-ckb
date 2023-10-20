@@ -9,7 +9,7 @@ homepage = "https://github.com/synapseweb3/eth-light-client-in-ckb"
 repository = "https://github.com/synapseweb3/eth-light-client-in-ckb"
 
 [dependencies]
-molecule         = { version = "=0.7.5", default-features = false }
+molecule         = { version = "=0.7.3", default-features = false }
 ckb-mmr          = { version = "0.6.0", default-features = false, package = "ckb-merkle-mountain-range" }
 rlp              = { version = "0.5.2", default-features = false }
 ethereum-types   = { version = "0.14.1", default-features = false  }
