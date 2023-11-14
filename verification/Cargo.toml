@@ -1,6 +1,6 @@
 [package]
 name = "eth_light_client_in_ckb-verification"
-version = "0.2.1"
+version = "0.2.2"
 authors = ["Boyu Yang <yangby@cryptape.com>"]
 edition = "2021"
 license = "MIT"
@@ -24,7 +24,7 @@ eth2_types       = { git = "https://github.com/synapseweb3/lighthouse", rev = "2
 log              = { version = "0.4.17", optional = true }
 
 [dev-dependencies]
-eth_light_client_in_ckb-prover = { version = "0.2.1", path = "../prover" }
+eth_light_client_in_ckb-prover = { version = "0.2.2", path = "../prover" }
 serde_json = "1.0"
 walkdir = "2.3.3"
 ethers-core = "2.0.2"
